@@ -1,5 +1,5 @@
 [package]
-name = "tes-parser"
+name = "tes-parse"
 version = "0.1.0"
 authors = ["Adam Gleave"]
 edition = "2018"
