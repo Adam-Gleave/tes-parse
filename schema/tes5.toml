@@ -1,0 +1,74 @@
+[[record]]
+name = "Action"
+code = "AACT"
+[[record.subrecord]]
+common = "EDID"
+[[record.subrecord]]
+common = "CNAM"
+
+[[record]]
+name = "Game Setting"
+code = "GMST"
+[[record.subrecord]]
+common = "EDID"
+[[record.subrecord]]
+name = "Value"
+code = "DATA"
+type = "variant"
+
+[[record]]
+name = "Location Reference Type"
+code = "LCRT"
+[[record.subrecord]]
+common = "EDID"
+[[record.subrecord]]
+common = "CNAM"
+
+[[record]]
+name = "Keyword"
+code = "KYWD"
+[[record.subrecord]]
+common = "EDID"
+[[record.subrecord]]
+common = "CNAM"
+
+[[record]]
+name = "Texture Set"
+code = "TXST"
+[[record.subrecord]]
+common = "EDID"
+[[record.subrecord]]
+common = "OBND"
+
+[[subrecord]]
+name = "Editor ID"
+code = "EDID"
+type = "zstring"
+
+[[subrecord]]
+name = "RGB Color"
+code = "CNAM"
+type = "rgb"
+
+[[subrecord]]
+name = "Object Bounds"
+code = "OBND"
+type = "struct"
+[[subrecord.member]]
+name = "x1"
+type = "int16"
+[[subrecord.member]]
+name = "y1"
+type = "int16"
+[[subrecord.member]]
+name = "z1"
+type = "int16"
+[[subrecord.member]]
+name = "x2"
+type = "int16"
+[[subrecord.member]]
+name = "y2"
+type = "int16"
+[[subrecord.member]]
+name = "z2"
+type = "int16"

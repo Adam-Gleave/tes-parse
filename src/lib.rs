@@ -1,4 +1,5 @@
 mod components;
+mod definitions;
 mod error;
 mod parser;
 
