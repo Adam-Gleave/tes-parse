@@ -115,10 +115,55 @@ pub struct Rgb {
 pub struct LString {
     index: u32,
     content: String,
+    modified: bool,
+    localized: bool,
 }
 
 impl Default for LString {
     fn default() -> Self {
-        Self { index: 0, content: "Unknown LString".to_owned() }
+        Self { 
+            index: 0, 
+            content: "Unknown LString".to_owned(), 
+            modified: false, 
+            localized: false,
+        }
+    }
+}
+
+impl LString {
+    pub fn with_index(self, index: u32) -> Self {
+        Self { 
+            index, 
+            content: self.content,
+            modified: self.modified,
+            localized: self.localized,
+        }
+    }
+
+    pub fn with_content(self, content: &str) -> Self {
+        Self {
+            index: self.index,
+            content: content.to_owned(),
+            modified: self.modified,
+            localized: self.localized,
+        }
+    }
+
+    pub fn with_localized(self, localized: bool) -> Self {
+        Self {
+            index: self.index,
+            content: self.content,
+            modified: self.modified,
+            localized,
+        }
+    }
+    
+    pub fn set(&mut self, str: &str) {
+        self.content = str.to_owned();
+        self.modified = true;
+    }
+
+    pub fn is_modified(&self) -> bool {
+        self.modified
     }
 }
