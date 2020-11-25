@@ -3,7 +3,7 @@ mod error;
 mod parser;
 
 #[rustfmt::skip]
-pub use parser::{
+pub use components::{
     Group, 
     GroupHeader, 
     Plugin, 
@@ -39,7 +39,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::{parser::TypeCode, read_plugin, Plugin};
+    use crate::{components::TypeCode, read_plugin, Plugin};
     use lazy_static::lazy_static;
     use std::fs::File;
     use std::path::PathBuf;

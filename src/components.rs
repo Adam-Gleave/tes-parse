@@ -1,14 +1,163 @@
 use std::collections::HashMap;
+use std::convert::TryInto;
+use std::fmt;
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct Plugin {
+    pub header: Record,
+    pub top_groups: Vec<Group>,
+}
+
+#[derive(Copy, Clone, PartialEq, Eq)]
+pub struct TypeCode {
+    pub code: [u8; 4],
+}
+
+impl fmt::Debug for TypeCode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let code = std::str::from_utf8(&self.code[..]).unwrap().to_owned();
+        f.debug_struct("TypeCode").field("code", &code).finish()
+    }
+}
+
+impl From<u32> for TypeCode {
+    fn from(input: u32) -> Self {
+        Self {
+            code: unsafe { std::mem::transmute(input.to_le()) },
+        }
+    }
+}
+
+impl Into<u32> for TypeCode {
+    fn into(self) -> u32 {
+        unsafe { std::mem::transmute(self.code) }
+    }
+}
+
+impl TypeCode {
+    pub fn from_utf8(input: &str) -> Result<Self, std::io::Error> {
+        let bytes = input.as_bytes();
+
+        if let Ok(code_byte_arr) = bytes.try_into() {
+            Ok(Self { code: code_byte_arr })
+        } else {
+            Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "Type code string is required to be 4 characters long",
+            ))
+        }
+    }
+
+    pub fn to_utf8(&self) -> Result<&str, std::str::Utf8Error> {
+        std::str::from_utf8(&self.code)
+    }
+}
+
+pub enum GroupType {
+    Top = 0,
+    WorldChildren = 1,
+    InteriorCellBlock = 2,
+    InteriorSubCellBlock = 3,
+    ExteriorCellBlock = 4,
+    ExteriorSubCellBlock = 5,
+    CellChildren = 6,
+    TopicChildren = 7,
+    CellPersistenChildren = 8,
+    CellTemporaryChildren = 9,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct Group {
+    pub header: GroupHeader,
+    pub records: Vec<Record>,
+}
+
+impl Group {
+    pub fn type_code(&self) -> Option<TypeCode> {
+        // Make sure this is a top group
+        if self.header.group_type == GroupType::Top as i32 {
+            Some(self.header.label.into())
+        } else {
+            None
+        }
+    }
+
+    pub fn top_group_matches_type(&self, code: TypeCode) -> bool {
+        if let Some(group_type_code) = self.type_code() {
+            code == group_type_code
+        } else {
+            false
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct GroupHeader {
+    pub code: TypeCode,
+    pub size: u32,
+    pub label: u32,
+    pub group_type: i32,
+    pub vc_info: u32,
+    pub unknown: u32,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Record {
+    pub header: RecordHeader,
+    pub subrecords: Vec<Subrecord>,
+}
+
+impl Record {
+    pub fn editor_id(&self) -> Option<String> {
+        if self.subrecords.is_empty() {
+            None
+        } else {
+            let edid_subrecord = self.subrecords.iter().find(|s| {
+                return s.header.code == TypeCode::from_utf8("EDID").unwrap();
+            });
+
+            if let Some(edid) = edid_subrecord {
+                Some(String::from_utf8(edid.data.clone()).unwrap())
+            } else {
+                None
+            }
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RecordHeader {
+    pub code: TypeCode,
+    pub size: u32,
+    pub flags: u32,
+    pub id: u32,
+    pub vc_info: u32,
+    pub version: u16,
+    pub unknown: u16,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Subrecord {
+    pub header: SubrecordHeader,
+    pub data: Vec<u8>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SubrecordHeader {
+    pub code: TypeCode,
+    pub size: u16,
+}
 
 pub enum EspComponentType {
     Value,
     Array,
     Struct,
+    Record,
 }
 
 pub trait EspComponent {
     fn name(&self) -> &str;
-    fn component_type() -> EspComponentType;
+    fn component_type(&self) -> EspComponentType;
     fn get(&self, accessor: &str) -> Option<&EspValue>;
     fn get_mut(&mut self, accessor: &str) -> Option<&mut EspValue>;
 }
@@ -24,7 +173,7 @@ impl EspComponent for EspValue {
         &self.name
     }
 
-    fn component_type() -> EspComponentType {
+    fn component_type(&self) -> EspComponentType {
         EspComponentType::Value
     }
 
@@ -48,7 +197,7 @@ impl EspComponent for EspArray {
         &self.name
     }
 
-    fn component_type() -> EspComponentType {
+    fn component_type(&self) -> EspComponentType {
         EspComponentType::Array
     }
 
@@ -72,7 +221,7 @@ impl EspComponent for EspStruct {
         &self.name
     }
 
-    fn component_type() -> EspComponentType {
+    fn component_type(&self) -> EspComponentType {
         EspComponentType::Struct
     }
 

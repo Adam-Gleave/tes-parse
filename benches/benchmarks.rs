@@ -8,7 +8,7 @@ fn read_benchmark(c: &mut Criterion) {
 
     c.bench_function("read_plugin", move |b| b.iter_with_setup(
         || File::open(&path).unwrap(),
-|file| read_plugin(file)
+        |file| read_plugin(file),
     ));
 }
 
