@@ -106,6 +106,12 @@ pub struct RecordComponent {
     subrecords: HashMap<String, Box<dyn EspComponent>>,
 }
 
+impl RecordComponent {
+    pub fn new(name: &str, subrecords: HashMap<String, Box<dyn EspComponent>>) -> Self {
+        Self { name: name.to_owned(), subrecords }
+    }
+}
+
 impl EspComponent for RecordComponent {
     fn name(&self) -> &str {
         &self.name
@@ -213,6 +219,12 @@ pub trait EspComponent {
 pub struct EspValue {
     name: String,
     pub value: EspType,
+}
+
+impl EspValue {
+    pub fn new(name: &str, value: EspType) -> Self {
+        Self { name: name.to_owned(), value }
+    }
 }
 
 impl EspComponent for EspValue {

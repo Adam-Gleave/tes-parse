@@ -62,7 +62,7 @@ fn record(input: &[u8]) -> IResult<&[u8], Record> {
     Ok((remaining, Record { header, subrecords }))
 }
 
-fn record_header(input: &[u8]) -> IResult<&[u8], RecordHeader> {
+pub fn record_header(input: &[u8]) -> IResult<&[u8], RecordHeader> {
     map(
         tuple((type_code, le_u32, le_u32, le_u32, le_u32, le_u16, le_u16)),
         |(code, size, flags, id, vc_info, version, unknown)| RecordHeader {
@@ -77,7 +77,7 @@ fn record_header(input: &[u8]) -> IResult<&[u8], RecordHeader> {
     )(input)
 }
 
-fn subrecord(input: &[u8]) -> IResult<&[u8], Subrecord> {
+pub fn subrecord(input: &[u8]) -> IResult<&[u8], Subrecord> {
     let (remaining, header) = subrecord_header(input)?;
     let (remaining, data) = take(header.size)(remaining)?;
     Ok((
@@ -143,7 +143,7 @@ fn esp_u64(input: &[u8]) -> IResult<&[u8], EspType> {
     Ok((remaining, EspType::Uint64(value)))
 }
 
-fn esp_rgb(input: &[u8]) -> IResult<&[u8], EspType> {
+pub fn esp_rgb(input: &[u8]) -> IResult<&[u8], EspType> {
     let (remaining, r) = le_u8(input)?;
     let (remaining, g) = le_u8(remaining)?;
     let (remaining, b) = le_u8(remaining)?;
@@ -182,7 +182,7 @@ fn esp_lstring(input: &[u8], localized: bool) -> IResult<&[u8], EspType> {
     }
 }
 
-fn esp_zstring(input: &[u8]) -> IResult<&[u8], EspType> {
+pub fn esp_zstring(input: &[u8]) -> IResult<&[u8], EspType> {
     let (remaining, content) = take_while(|byte: u8| byte != 0)(input)?;
     let (remaining, _) = tag([0u8])(remaining)?;
 

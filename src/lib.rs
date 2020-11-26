@@ -1,6 +1,7 @@
 mod components;
 mod error;
 mod parser;
+mod records;
 
 #[rustfmt::skip]
 pub use components::{
