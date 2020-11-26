@@ -101,6 +101,53 @@ pub struct GroupHeader {
     pub unknown: u32,
 }
 
+pub struct RecordComponent {
+    name: String,
+    subrecords: HashMap<String, Box<dyn EspComponent>>,
+}
+
+impl EspComponent for RecordComponent {
+    fn name(&self) -> &str {
+        &self.name
+    }
+
+    fn component_type(&self) -> EspComponentType {
+        EspComponentType::Record
+    }
+
+    fn get(&self, accessor: &str) -> Option<&EspValue> {
+        let accessor = accessor.to_owned();
+
+        if let Some(split_index) = accessor.find("/") {
+            let (subrecord_code, subrecord_accessor) = accessor.split_at(split_index);
+
+            if let Some(subrecord) = self.subrecords.get(subrecord_code) {
+                subrecord.get(subrecord_accessor)
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
+
+    fn get_mut(&mut self, accessor: &str) -> Option<&mut EspValue> {
+        let accessor = accessor.to_owned();
+
+        if let Some(split_index) = accessor.find("/") {
+            let (subrecord_code, subrecord_accessor) = accessor.split_at(split_index);
+
+            if let Some(subrecord) = self.subrecords.get_mut(subrecord_code) {
+                subrecord.get_mut(subrecord_accessor)
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Record {
     pub header: RecordHeader,
