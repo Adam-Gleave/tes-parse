@@ -94,8 +94,6 @@ pub fn record(input: &[u8]) -> IResult<&[u8], RecordResult> {
     let (_, code) = peek(type_code)(input)?;
     let code_str = code.to_utf8().expect(&format!("Unable to parse type code: {:#?}", code));
 
-    println!("Code: {}", code.to_string());
-
     match code_str {
         "GRUP" => {
             let (remaining, child_group) = group(input)?;
@@ -104,7 +102,9 @@ pub fn record(input: &[u8]) -> IResult<&[u8], RecordResult> {
                 RecordResult::ChildGroup(child_group.records)
             ))
         },
-        "KYWD" => Ok(keyword(input)?),
+        "AACT" => Ok(color_record("Action", input)?),
+        "KYWD" => Ok(color_record("Keyword", input)?),
+        "LCRT" => Ok(color_record("Location Reference Type", input)?),
         _      => Ok(unknown(input)?),
     }
 }
