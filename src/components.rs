@@ -7,15 +7,15 @@ pub struct Plugin {
     pub top_groups: Vec<Group>,
 }
 
-#[derive(Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct TypeCode {
     pub code: [u8; 4],
 }
 
-impl fmt::Debug for TypeCode {
+impl fmt::Display for TypeCode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let code = std::str::from_utf8(&self.code[..]).unwrap().to_owned();
-        f.debug_struct("TypeCode").field("code", &code).finish()
+        write!(f, "{}", code)
     }
 }
 
@@ -67,7 +67,7 @@ pub enum GroupType {
 
 pub struct Group {
     pub header: GroupHeader,
-    pub records: Vec<RecordComponent>,
+    pub records: Vec<Box<dyn EspComponent>>,
 }
 
 impl Group {

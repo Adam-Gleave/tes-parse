@@ -1,7 +1,7 @@
 use crate::components::*;
 use crate::records::*;
 use nom::bytes::complete::{tag, take, take_while};
-use nom::combinator::map;
+use nom::combinator::{map, peek};
 use nom::multi::many0;
 use nom::number::complete::{
     le_f32,
@@ -21,8 +21,13 @@ use std::convert::TryInto;
 
 pub fn parse_plugin(input: &[u8]) -> IResult<&[u8], Plugin> {
     let (remaining, header) = unknown(input)?;
+    let header = if let RecordResult::Single(header_record) = header {
+        Some(header_record)
+    } else {
+        None
+    };
     let (remaining, top_groups) = many0(group)(remaining)?;
-    Ok((remaining, Plugin { header: Box::new(header), top_groups }))
+    Ok((remaining, Plugin { header: header.unwrap(), top_groups }))
 }
 
 fn type_code(input: &[u8]) -> IResult<&[u8], TypeCode> {
@@ -38,7 +43,16 @@ fn type_code(input: &[u8]) -> IResult<&[u8], TypeCode> {
 fn group(input: &[u8]) -> IResult<&[u8], Group> {
     let (remaining, header) = group_header(input)?;
     let (remaining, records_bytes) = take(header.size - 24)(remaining)?;
-    let (_, records) = many0(unknown)(records_bytes)?;
+    let (_, results) = many0(record)(records_bytes)?;
+    let mut records = vec![];
+
+    for result in results {
+        match result {
+            RecordResult::Single(record) => records.push(record),
+            RecordResult::ChildGroup(child_records) => records.extend(child_records),
+        }
+    }
+
     Ok((remaining, Group { header, records }))
 }
 
@@ -69,6 +83,30 @@ pub fn record_header(input: &[u8]) -> IResult<&[u8], RecordHeader> {
             unknown,
         },
     )(input)
+}
+
+pub enum RecordResult {
+    Single(Box<dyn EspComponent>),
+    ChildGroup(Vec<Box<dyn EspComponent>>),
+}
+
+pub fn record(input: &[u8]) -> IResult<&[u8], RecordResult> {
+    let (_, code) = peek(type_code)(input)?;
+    let code_str = code.to_utf8().expect(&format!("Unable to parse type code: {:#?}", code));
+
+    println!("Code: {}", code.to_string());
+
+    match code_str {
+        "GRUP" => {
+            let (remaining, child_group) = group(input)?;
+            Ok((
+                remaining, 
+                RecordResult::ChildGroup(child_group.records)
+            ))
+        },
+        "KYWD" => Ok(keyword(input)?),
+        _      => Ok(unknown(input)?),
+    }
 }
 
 pub fn subrecord(input: &[u8]) -> IResult<&[u8], Subrecord> {

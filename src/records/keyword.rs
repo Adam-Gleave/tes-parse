@@ -5,7 +5,7 @@ use nom::multi::many0;
 use nom::IResult;
 use std::collections::HashMap;
 
-pub fn keyword(input: &[u8]) -> IResult<&[u8], RecordComponent> {
+pub fn keyword(input: &[u8]) -> IResult<&[u8], RecordResult> {
     let mut subrecord_map: HashMap<String, Box<dyn EspComponent>> = HashMap::new();
     let (remaining, header) = record_header(input)?;
     let (remaining, mut subrecords_bytes) = take(header.size)(remaining)?;
@@ -43,6 +43,8 @@ pub fn keyword(input: &[u8]) -> IResult<&[u8], RecordComponent> {
 
     Ok((
         remaining, 
-        RecordComponent::new("Keyword", subrecord_map),
+        RecordResult::Single(Box::new(
+            RecordComponent::new("Keyword", subrecord_map)
+        )),
     ))
 }
