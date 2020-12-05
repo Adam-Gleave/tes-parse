@@ -38,9 +38,7 @@ impl TypeCode {
         let bytes = input.as_bytes();
 
         if let Ok(code_byte_arr) = bytes.try_into() {
-            Ok(Self {
-                code: code_byte_arr,
-            })
+            Ok(Self { code: code_byte_arr })
         } else {
             Err(std::io::Error::new(
                 std::io::ErrorKind::InvalidData,

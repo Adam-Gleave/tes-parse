@@ -3,9 +3,7 @@ use crate::records::*;
 use nom::bytes::complete::{tag, take, take_while};
 use nom::combinator::{map, peek};
 use nom::multi::many0;
-use nom::number::complete::{
-    le_f32, le_f64, le_i16, le_i32, le_i64, le_i8, le_u16, le_u32, le_u64, le_u8,
-};
+use nom::number::complete::{le_f32, le_f64, le_i16, le_i32, le_i64, le_i8, le_u16, le_u32, le_u64, le_u8};
 use nom::sequence::tuple;
 use nom::IResult;
 use std::convert::TryInto;
@@ -32,9 +30,7 @@ fn type_code(input: &[u8]) -> IResult<&[u8], TypeCode> {
     Ok((
         remaining,
         TypeCode {
-            code: code
-                .try_into()
-                .expect("Parsing type code with incorrect length"),
+            code: code.try_into().expect("Parsing type code with incorrect length"),
         },
     ))
 }
@@ -91,9 +87,7 @@ pub enum RecordResult {
 
 pub fn record(input: &[u8]) -> IResult<&[u8], RecordResult> {
     let (_, code) = peek(type_code)(input)?;
-    let code_str = code
-        .to_utf8()
-        .expect(&format!("Unable to parse type code: {:#?}", code));
+    let code_str = code.to_utf8().expect(&format!("Unable to parse type code: {:#?}", code));
 
     match code_str {
         "GRUP" => {
@@ -121,10 +115,7 @@ pub fn subrecord(input: &[u8]) -> IResult<&[u8], Subrecord> {
 }
 
 pub fn subrecord_header(input: &[u8]) -> IResult<&[u8], SubrecordHeader> {
-    map(tuple((type_code, le_u16)), |(code, size)| SubrecordHeader {
-        code,
-        size,
-    })(input)
+    map(tuple((type_code, le_u16)), |(code, size)| SubrecordHeader { code, size })(input)
 }
 
 pub fn esp_f32(input: &[u8]) -> IResult<&[u8], EspType> {
@@ -202,8 +193,7 @@ pub fn esp_lstring(input: &[u8], localized: bool) -> IResult<&[u8], EspType> {
     } else {
         let (remaining, content) = take_while(|byte: u8| byte != 0)(input)?;
         let (remaining, _) = tag([0u8])(remaining)?;
-        lstring =
-            lstring.with_content(std::str::from_utf8(content).unwrap_or("Error decoding string"));
+        lstring = lstring.with_content(std::str::from_utf8(content).unwrap_or("Error decoding string"));
 
         Ok((remaining, EspType::LString(lstring)))
     }
@@ -215,10 +205,6 @@ pub fn esp_zstring(input: &[u8]) -> IResult<&[u8], EspType> {
 
     Ok((
         remaining,
-        EspType::ZString(
-            std::str::from_utf8(content)
-                .unwrap_or("Error decoding string")
-                .to_owned(),
-        ),
+        EspType::ZString(std::str::from_utf8(content).unwrap_or("Error decoding string").to_owned()),
     ))
 }
