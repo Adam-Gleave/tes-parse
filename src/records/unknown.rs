@@ -9,9 +9,7 @@ pub fn unknown(input: &[u8]) -> IResult<&[u8], RecordResult> {
     let (remaining, _) = take(header.size)(remaining)?;
 
     Ok((
-        remaining, 
-        RecordResult::Single(Box::new(
-            RecordComponent::new("Unknown", HashMap::new())
-        )),
+        remaining,
+        RecordResult::Single(Box::new(RecordComponent::new("Unknown", HashMap::new()))),
     ))
 }

@@ -38,7 +38,9 @@ impl TypeCode {
         let bytes = input.as_bytes();
 
         if let Ok(code_byte_arr) = bytes.try_into() {
-            Ok(Self { code: code_byte_arr })
+            Ok(Self {
+                code: code_byte_arr,
+            })
         } else {
             Err(std::io::Error::new(
                 std::io::ErrorKind::InvalidData,
@@ -106,7 +108,10 @@ pub struct RecordComponent {
 
 impl RecordComponent {
     pub fn new(name: &str, subrecords: HashMap<String, Box<dyn EspComponent>>) -> Self {
-        Self { name: name.to_owned(), subrecords }
+        Self {
+            name: name.to_owned(),
+            subrecords,
+        }
     }
 }
 
@@ -213,7 +218,7 @@ pub trait EspComponent: Send + Sync {
     fn get_mut(&mut self, accessor: &str) -> Option<&mut EspValue>;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct EspValue {
     name: String,
     pub value: EspType,
@@ -221,7 +226,10 @@ pub struct EspValue {
 
 impl EspValue {
     pub fn new(name: &str, value: EspType) -> Self {
-        Self { name: name.to_owned(), value }
+        Self {
+            name: name.to_owned(),
+            value,
+        }
     }
 }
 
@@ -291,7 +299,7 @@ impl EspComponent for EspStruct {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum EspType {
     Int8(i8),
     Int16(i16),
@@ -309,7 +317,7 @@ pub enum EspType {
     LString(LString),
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Rgb {
     pub r: u8,
     pub g: u8,
@@ -317,7 +325,7 @@ pub struct Rgb {
     pub a: u8,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct LString {
     index: u32,
     content: String,
@@ -327,10 +335,10 @@ pub struct LString {
 
 impl Default for LString {
     fn default() -> Self {
-        Self { 
-            index: 0, 
-            content: "Unknown LString".to_owned(), 
-            modified: false, 
+        Self {
+            index: 0,
+            content: "Unknown LString".to_owned(),
+            modified: false,
             localized: false,
         }
     }
@@ -338,8 +346,8 @@ impl Default for LString {
 
 impl LString {
     pub fn with_index(self, index: u32) -> Self {
-        Self { 
-            index, 
+        Self {
+            index,
             content: self.content,
             modified: self.modified,
             localized: self.localized,
@@ -363,7 +371,7 @@ impl LString {
             localized,
         }
     }
-    
+
     pub fn set(&mut self, str: &str) {
         self.content = str.to_owned();
         self.modified = true;

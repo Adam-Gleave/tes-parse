@@ -4,16 +4,7 @@ use nom::bytes::complete::{tag, take, take_while};
 use nom::combinator::{map, peek};
 use nom::multi::many0;
 use nom::number::complete::{
-    le_f32,
-    le_f64,
-    le_i8,
-    le_i16,
-    le_i32,
-    le_i64,
-    le_u8,
-    le_u16,
-    le_u32,
-    le_u64,
+    le_f32, le_f64, le_i16, le_i32, le_i64, le_i8, le_u16, le_u32, le_u64, le_u8,
 };
 use nom::sequence::tuple;
 use nom::IResult;
@@ -27,7 +18,13 @@ pub fn parse_plugin(input: &[u8]) -> IResult<&[u8], Plugin> {
         None
     };
     let (remaining, top_groups) = many0(group)(remaining)?;
-    Ok((remaining, Plugin { header: header.unwrap(), top_groups }))
+    Ok((
+        remaining,
+        Plugin {
+            header: header.unwrap(),
+            top_groups,
+        },
+    ))
 }
 
 fn type_code(input: &[u8]) -> IResult<&[u8], TypeCode> {
@@ -35,7 +32,9 @@ fn type_code(input: &[u8]) -> IResult<&[u8], TypeCode> {
     Ok((
         remaining,
         TypeCode {
-            code: code.try_into().expect("Parsing type code with incorrect length"),
+            code: code
+                .try_into()
+                .expect("Parsing type code with incorrect length"),
         },
     ))
 }
@@ -92,20 +91,20 @@ pub enum RecordResult {
 
 pub fn record(input: &[u8]) -> IResult<&[u8], RecordResult> {
     let (_, code) = peek(type_code)(input)?;
-    let code_str = code.to_utf8().expect(&format!("Unable to parse type code: {:#?}", code));
+    let code_str = code
+        .to_utf8()
+        .expect(&format!("Unable to parse type code: {:#?}", code));
 
     match code_str {
         "GRUP" => {
             let (remaining, child_group) = group(input)?;
-            Ok((
-                remaining, 
-                RecordResult::ChildGroup(child_group.records)
-            ))
-        },
+            Ok((remaining, RecordResult::ChildGroup(child_group.records)))
+        }
         "AACT" => Ok(color_record("Action", input)?),
+        "GMST" => Ok(game_setting(input)?),
         "KYWD" => Ok(color_record("Keyword", input)?),
         "LCRT" => Ok(color_record("Location Reference Type", input)?),
-        _      => Ok(unknown(input)?),
+        _ => Ok(unknown(input)?),
     }
 }
 
@@ -121,56 +120,59 @@ pub fn subrecord(input: &[u8]) -> IResult<&[u8], Subrecord> {
     ))
 }
 
-fn subrecord_header(input: &[u8]) -> IResult<&[u8], SubrecordHeader> {
-    map(tuple((type_code, le_u16)), |(code, size)| SubrecordHeader { code, size })(input)
+pub fn subrecord_header(input: &[u8]) -> IResult<&[u8], SubrecordHeader> {
+    map(tuple((type_code, le_u16)), |(code, size)| SubrecordHeader {
+        code,
+        size,
+    })(input)
 }
 
-fn esp_f32(input: &[u8]) -> IResult<&[u8], EspType> {
+pub fn esp_f32(input: &[u8]) -> IResult<&[u8], EspType> {
     let (remaining, value) = le_f32(input)?;
     Ok((remaining, EspType::Float32(value)))
 }
 
-fn esp_f64(input: &[u8]) -> IResult<&[u8], EspType> {
+pub fn esp_f64(input: &[u8]) -> IResult<&[u8], EspType> {
     let (remaining, value) = le_f64(input)?;
     Ok((remaining, EspType::Float64(value)))
 }
 
-fn esp_i8(input: &[u8]) -> IResult<&[u8], EspType> {
+pub fn esp_i8(input: &[u8]) -> IResult<&[u8], EspType> {
     let (remaining, value) = le_i8(input)?;
     Ok((remaining, EspType::Int8(value)))
 }
 
-fn esp_i16(input: &[u8]) -> IResult<&[u8], EspType> {
+pub fn esp_i16(input: &[u8]) -> IResult<&[u8], EspType> {
     let (remaining, value) = le_i16(input)?;
-    Ok((remaining, EspType::Int16(value)))    
+    Ok((remaining, EspType::Int16(value)))
 }
 
-fn esp_i32(input: &[u8]) -> IResult<&[u8], EspType> {
+pub fn esp_i32(input: &[u8]) -> IResult<&[u8], EspType> {
     let (remaining, value) = le_i32(input)?;
     Ok((remaining, EspType::Int32(value)))
 }
 
-fn esp_i64(input: &[u8]) -> IResult<&[u8], EspType> {
+pub fn esp_i64(input: &[u8]) -> IResult<&[u8], EspType> {
     let (remaining, value) = le_i64(input)?;
     Ok((remaining, EspType::Int64(value)))
 }
 
-fn esp_u8(input: &[u8]) -> IResult<&[u8], EspType> {
+pub fn esp_u8(input: &[u8]) -> IResult<&[u8], EspType> {
     let (remaining, value) = le_u8(input)?;
     Ok((remaining, EspType::Uint8(value)))
 }
 
-fn esp_u16(input: &[u8]) -> IResult<&[u8], EspType> {
+pub fn esp_u16(input: &[u8]) -> IResult<&[u8], EspType> {
     let (remaining, value) = le_u16(input)?;
-    Ok((remaining, EspType::Uint16(value)))    
+    Ok((remaining, EspType::Uint16(value)))
 }
 
-fn esp_u32(input: &[u8]) -> IResult<&[u8], EspType> {
+pub fn esp_u32(input: &[u8]) -> IResult<&[u8], EspType> {
     let (remaining, value) = le_u32(input)?;
     Ok((remaining, EspType::Uint32(value)))
 }
 
-fn esp_u64(input: &[u8]) -> IResult<&[u8], EspType> {
+pub fn esp_u64(input: &[u8]) -> IResult<&[u8], EspType> {
     let (remaining, value) = le_u64(input)?;
     Ok((remaining, EspType::Uint64(value)))
 }
@@ -181,34 +183,27 @@ pub fn esp_rgb(input: &[u8]) -> IResult<&[u8], EspType> {
     let (remaining, b) = le_u8(remaining)?;
     let (remaining, a) = le_u8(remaining)?;
 
-    Ok((
-        remaining,
-        EspType::Rgb(
-            Rgb { r, g, b, a }
-        )
-    ))
+    Ok((remaining, EspType::Rgb(Rgb { r, g, b, a })))
 }
 
-fn esp_formid(input: &[u8]) -> IResult<&[u8], EspType> {
+pub fn esp_formid(input: &[u8]) -> IResult<&[u8], EspType> {
     let (remaining, value) = le_u32(input)?;
     Ok((remaining, EspType::FormID(value)))
 }
 
-fn esp_lstring(input: &[u8], localized: bool) -> IResult<&[u8], EspType> {
-    let mut lstring = LString::default()
-        .with_localized(localized);
+pub fn esp_lstring(input: &[u8], localized: bool) -> IResult<&[u8], EspType> {
+    let mut lstring = LString::default().with_localized(localized);
 
     if localized {
         let (remaining, index) = le_u32(input)?;
         lstring = lstring.with_index(index);
-        
+
         Ok((remaining, EspType::LString(lstring)))
     } else {
         let (remaining, content) = take_while(|byte: u8| byte != 0)(input)?;
         let (remaining, _) = tag([0u8])(remaining)?;
-        lstring = lstring.with_content(
-            std::str::from_utf8(content).unwrap_or("Error decoding string")
-        );
+        lstring =
+            lstring.with_content(std::str::from_utf8(content).unwrap_or("Error decoding string"));
 
         Ok((remaining, EspType::LString(lstring)))
     }
@@ -219,11 +214,11 @@ pub fn esp_zstring(input: &[u8]) -> IResult<&[u8], EspType> {
     let (remaining, _) = tag([0u8])(remaining)?;
 
     Ok((
-        remaining, 
+        remaining,
         EspType::ZString(
             std::str::from_utf8(content)
                 .unwrap_or("Error decoding string")
-                .to_owned()
+                .to_owned(),
         ),
     ))
 }
