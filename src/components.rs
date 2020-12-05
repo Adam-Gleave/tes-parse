@@ -2,9 +2,8 @@ use std::collections::HashMap;
 use std::convert::TryInto;
 use std::fmt;
 
-#[derive(Debug, PartialEq, Eq)]
 pub struct Plugin {
-    pub header: Record,
+    pub header: Box<dyn EspComponent>,
     pub top_groups: Vec<Group>,
 }
 
@@ -66,10 +65,9 @@ pub enum GroupType {
     CellTemporaryChildren = 9,
 }
 
-#[derive(Debug, PartialEq, Eq)]
 pub struct Group {
     pub header: GroupHeader,
-    pub records: Vec<Record>,
+    pub records: Vec<RecordComponent>,
 }
 
 impl Group {
@@ -208,7 +206,7 @@ pub enum EspComponentType {
     Record,
 }
 
-pub trait EspComponent {
+pub trait EspComponent: Send + Sync {
     fn name(&self) -> &str;
     fn component_type(&self) -> EspComponentType;
     fn get(&self, accessor: &str) -> Option<&EspValue>;

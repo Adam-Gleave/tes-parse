@@ -1,4 +1,5 @@
 use crate::components::*;
+use crate::records::*;
 use nom::bytes::complete::{tag, take, take_while};
 use nom::combinator::map;
 use nom::multi::many0;
@@ -19,9 +20,9 @@ use nom::IResult;
 use std::convert::TryInto;
 
 pub fn parse_plugin(input: &[u8]) -> IResult<&[u8], Plugin> {
-    let (remaining, header) = record(input)?;
+    let (remaining, header) = unknown(input)?;
     let (remaining, top_groups) = many0(group)(remaining)?;
-    Ok((remaining, Plugin { header, top_groups }))
+    Ok((remaining, Plugin { header: Box::new(header), top_groups }))
 }
 
 fn type_code(input: &[u8]) -> IResult<&[u8], TypeCode> {
@@ -37,7 +38,7 @@ fn type_code(input: &[u8]) -> IResult<&[u8], TypeCode> {
 fn group(input: &[u8]) -> IResult<&[u8], Group> {
     let (remaining, header) = group_header(input)?;
     let (remaining, records_bytes) = take(header.size - 24)(remaining)?;
-    let (_, records) = many0(record)(records_bytes)?;
+    let (_, records) = many0(unknown)(records_bytes)?;
     Ok((remaining, Group { header, records }))
 }
 
@@ -53,13 +54,6 @@ fn group_header(input: &[u8]) -> IResult<&[u8], GroupHeader> {
             unknown,
         },
     )(input)
-}
-
-fn record(input: &[u8]) -> IResult<&[u8], Record> {
-    let (remaining, header) = record_header(input)?;
-    let (remaining, subrecords_bytes) = take(header.size)(remaining)?;
-    let (_, subrecords) = many0(subrecord)(subrecords_bytes)?;
-    Ok((remaining, Record { header, subrecords }))
 }
 
 pub fn record_header(input: &[u8]) -> IResult<&[u8], RecordHeader> {

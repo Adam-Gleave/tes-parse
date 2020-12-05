@@ -13,6 +13,7 @@ pub use components::{
     Subrecord, 
     SubrecordHeader, 
     TypeCode,
+    EspComponent,
 };
 
 pub use error::ParseError;
@@ -55,8 +56,7 @@ mod tests {
 
     #[test]
     fn test_file_header() {
-        assert_eq!(SKYRIM_PLUGIN.header.header.version, 40);
-        assert_eq!(SKYRIM_PLUGIN.header.subrecords.len(), 3);
+        assert_eq!(SKYRIM_PLUGIN.header.name(), "Unknown");
     }
 
     #[test]

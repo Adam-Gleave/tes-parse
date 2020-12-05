@@ -16,7 +16,7 @@ pub fn keyword(input: &[u8]) -> IResult<&[u8], RecordComponent> {
             .to_utf8()
             .expect(&format!("Error parsing subrecord code {:#?}", subrecord.header.code));
 
-        match subrecord.header.code.to_utf8().unwrap() {
+        match code_str {
             "EDID" => { 
                 let parsed = esp_zstring(subrecords_bytes)?;
                 let value = parsed.1;
