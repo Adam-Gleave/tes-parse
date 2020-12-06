@@ -1,16 +1,6 @@
-[package]
-name = "tes-parse"
-version = "0.1.0"
-authors = ["Adam Gleave"]
-edition = "2018"
+[workspace]
 
-[dependencies]
-bitflags = "1.2.1"
-lazy_static = "1.4"
-nom = "5"
-
-[dev-dependencies]
-criterion = "0.3"
-
-[[bench]]
-name = "benchmarks"
+members = [
+    "tes-parse",
+    "tes-parse-derive",
+]

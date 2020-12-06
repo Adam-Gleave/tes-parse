@@ -1,6 +1,7 @@
 mod components;
 mod error;
 mod parser;
+mod parsers;
 mod records;
 
 #[rustfmt::skip]
