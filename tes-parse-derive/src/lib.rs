@@ -33,10 +33,12 @@ pub fn derive_value_parser(input: proc_macro::TokenStream) -> proc_macro::TokenS
             type Output = EspType;
             type Flags = u32;
 
-            fn do_parse(&self, ctx: &'a mut dyn Context<'a, Flags = Self::Flags >) -> Self::Output {
+            fn code(&self) -> &str { "" }
+
+            fn do_parse(&self, ctx: &'a mut dyn Context<'a, Flags = Self::Flags >) -> Option<Self::Output> {
                 let (remaining, output) = #parse_fn(ctx.get_bytes()).expect("Parser error");
                 ctx.set_bytes(remaining);
-                output
+                Some(output)
             }
         }
     };

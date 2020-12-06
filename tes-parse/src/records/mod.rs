@@ -11,7 +11,7 @@ use nom::multi::many0;
 use nom::IResult;
 use std::collections::HashMap;
 
-fn get_subrecords(data_size: u32, input: &[u8]) -> IResult<&[u8], (Vec<Subrecord>, &[u8])> {
+pub fn get_subrecords(data_size: u32, input: &[u8]) -> IResult<&[u8], (Vec<Subrecord>, &[u8])> {
     let (remaining, subrecords_bytes) = take(data_size)(input)?;
     let (_, subrecords) = many0(subrecord)(subrecords_bytes)?;
     Ok((remaining, (subrecords, subrecords_bytes)))
