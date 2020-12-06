@@ -1,12 +1,12 @@
 use crate::components::*;
 use crate::parser::*;
 use crate::records::*;
-use tes_parse_derive::ValueParser;
 use nom::bytes::complete::take;
 use nom::multi::many0;
 use nom::IResult;
 use std::cell::RefCell;
 use std::collections::HashMap;
+use tes_parse_derive::ValueParser;
 
 pub trait Context<'a> {
     type Flags;
@@ -21,7 +21,7 @@ pub(crate) trait Parser<'a> {
     type Flags;
 
     fn code(&self) -> &str;
-    fn do_parse(&self, ctx: &'a mut dyn Context<'a, Flags = Self::Flags >) -> Option<Self::Output>;
+    fn do_parse(&self, ctx: &'a mut dyn Context<'a, Flags = Self::Flags>) -> Option<Self::Output>;
 }
 
 pub struct PluginContext<'a> {
@@ -31,7 +31,7 @@ pub struct PluginContext<'a> {
 
 impl<'a> Context<'a> for PluginContext<'a> {
     type Flags = u32;
-    
+
     fn get_flags(&self) -> u32 {
         self.tes4_header.flags
     }
@@ -61,7 +61,9 @@ impl<'a> Parser<'a> for PluginParser<'a> {
     type Output = Plugin;
     type Flags = u32;
 
-    fn code(&self) -> &str { "PLUGIN" }
+    fn code(&self) -> &str {
+        "PLUGIN"
+    }
 
     fn do_parse(&self, ctx: &'a mut dyn Context<Flags = Self::Flags>) -> Option<Self::Output> {
         None
@@ -73,7 +75,10 @@ pub struct GroupParser<'a> {
 }
 
 impl<'a> GroupParser<'a> {
-    pub fn with_record(mut self, parser: Box<dyn Parser<'a, Output = RecordResult, Flags = u32>>) -> Self {
+    pub fn with_record(
+        mut self,
+        parser: Box<dyn Parser<'a, Output = RecordResult, Flags = u32>>,
+    ) -> Self {
         self.record_parser = parser;
         self
     }
@@ -83,7 +88,9 @@ impl<'a> Parser<'a> for GroupParser<'a> {
     type Output = Group;
     type Flags = u32;
 
-    fn code(&self) -> &str { "GRUP" }
+    fn code(&self) -> &str {
+        "GRUP"
+    }
 
     fn do_parse(&self, ctx: &'a mut dyn Context<Flags = Self::Flags>) -> Option<Self::Output> {
         None
@@ -93,7 +100,8 @@ impl<'a> Parser<'a> for GroupParser<'a> {
 pub struct RecordParser<'a> {
     code: TypeCode,
     name: String,
-    subrecord_parsers: RefCell<HashMap<String, Box<dyn Parser<'a, Output = EspValue, Flags = u32> + 'a>>>,
+    subrecord_parsers:
+        RefCell<HashMap<String, Box<dyn Parser<'a, Output = EspValue, Flags = u32> + 'a>>>,
 }
 
 impl<'a> RecordParser<'a> {
@@ -105,8 +113,13 @@ impl<'a> RecordParser<'a> {
         }
     }
 
-    pub fn with_subrecord(mut self, parser: Box<dyn Parser<'a, Output = EspValue, Flags = u32>>) -> Self {
-        self.subrecord_parsers.borrow_mut().insert(parser.code().to_owned(), parser);
+    pub fn with_subrecord(
+        mut self,
+        parser: Box<dyn Parser<'a, Output = EspValue, Flags = u32>>,
+    ) -> Self {
+        self.subrecord_parsers
+            .borrow_mut()
+            .insert(parser.code().to_owned(), parser);
         self
     }
 
@@ -121,22 +134,28 @@ impl<'a> Parser<'a> for RecordParser<'a> {
     type Output = RecordResult;
     type Flags = u32;
 
-    fn code(&self) -> &str { self.code.to_utf8().unwrap() }
+    fn code(&self) -> &str {
+        self.code.to_utf8().unwrap()
+    }
 
     fn do_parse(&self, ctx: &'a mut dyn Context<'a, Flags = Self::Flags>) -> Option<Self::Output> {
         let (remaining, header) = record_header(ctx.get_bytes()).unwrap();
-        let (remaining, (subrecords, mut subrecords_bytes)) = get_subrecords(header.size, remaining).unwrap();
+        let (remaining, (subrecords, mut subrecords_bytes)) =
+            get_subrecords(header.size, remaining).unwrap();
+
         let mut parsed_subrecords = vec![];
 
         for subrecord in subrecords.iter() {
             let parsed: IResult<&[u8], &[u8]> = take(6usize)(subrecords_bytes);
             let subrecords_bytes = parsed.unwrap().0;
 
-            let code_str = subrecord.header.code
-                .to_utf8()
-                .expect(&format!("Cannot parse subrecord code: {:#?}", subrecord.header.code));
+            let code_str = subrecord.header.code.to_utf8().expect(&format!(
+                "Cannot parse subrecord code: {:#?}",
+                subrecord.header.code
+            ));
 
-            let subrecord_parser = self.subrecord_parsers
+            let subrecord_parser = self
+                .subrecord_parsers
                 .borrow()
                 .get(code_str)
                 .expect(&format!("No parser for {} subrecord", code_str));
@@ -158,13 +177,17 @@ pub struct ValueSubrecordParser<'a> {
 impl<'a> ValueSubrecordParser<'a> {
     pub fn new(code: &str, name: &str) -> Self {
         Self {
-            code: TypeCode::from_utf8(code).expect(&format!("Cannot parse subrecord code: {}", code)),
+            code: TypeCode::from_utf8(code)
+                .expect(&format!("Cannot parse subrecord code: {}", code)),
             name: name.to_owned(),
             value_parser: None,
         }
     }
 
-    pub fn with_value(mut self, parser: Box<dyn Parser<'a, Output = EspValue, Flags = u32>>) -> Self {
+    pub fn with_value(
+        mut self,
+        parser: Box<dyn Parser<'a, Output = EspValue, Flags = u32>>,
+    ) -> Self {
         self.value_parser = Some(parser);
         self
     }
@@ -174,14 +197,19 @@ impl<'a> Parser<'a> for ValueSubrecordParser<'a> {
     type Output = Box<dyn EspComponent>;
     type Flags = u32;
 
-    fn code(&self) -> &str { self.code.to_utf8().unwrap() }
+    fn code(&self) -> &str {
+        self.code.to_utf8().unwrap()
+    }
 
     fn do_parse(&self, ctx: &'a mut dyn Context<'a, Flags = Self::Flags>) -> Option<Self::Output> {
         let (remaining, header) = subrecord_header(ctx.get_bytes()).expect("Parser error");
-        
+
         let (remaining, value) = if let Some(parser) = self.value_parser {
             let value = parser.do_parse(ctx).unwrap();
-            (ctx.get_bytes(), Some(Box::new(value) as Box<dyn EspComponent>))
+            (
+                ctx.get_bytes(),
+                Some(Box::new(value) as Box<dyn EspComponent>),
+            )
         } else {
             let parsed: IResult<&[u8], _> = take(header.size as usize)(remaining);
             (parsed.unwrap().0, None)

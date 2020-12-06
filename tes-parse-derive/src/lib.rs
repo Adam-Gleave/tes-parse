@@ -11,7 +11,7 @@ impl parse::Parse for ParseFnParams {
         parenthesized!(content in input);
         let parse_fn = content.parse()?;
 
-        Ok(ParseFnParams{ parse_fn })
+        Ok(ParseFnParams { parse_fn })
     }
 }
 
@@ -20,7 +20,8 @@ pub fn derive_value_parser(input: proc_macro::TokenStream) -> proc_macro::TokenS
     let input = parse_macro_input!(input as DeriveInput);
 
     let name = input.ident;
-    let parse_fn_attr = input.attrs
+    let parse_fn_attr = input
+        .attrs
         .iter()
         .find(|a| a.path.segments[0].ident == "parse_fn")
         .expect("No parse function provided (provide with #[parse_fn(_)] attribute)");
