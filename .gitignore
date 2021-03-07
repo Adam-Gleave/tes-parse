@@ -11,3 +11,5 @@ Cargo.lock
 
 # Test data files
 /data/
+
+.DS_Store

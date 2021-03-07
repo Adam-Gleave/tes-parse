@@ -1,6 +1,6 @@
-use crate::error;
-use bitflags::bitflags;
-use std::{convert::TryFrom, fmt::{self, Debug}, ops::{self, Deref}};
+use super::prelude::*;
+use std::fmt;
+use std::ops::{self, Deref};
 
 pub struct TypeCode([u8; 4]);
 
@@ -38,6 +38,7 @@ impl ops::Deref for TypeCode {
     }
 }
 
+#[derive(Default)]
 pub struct FormId(u32);
 
 impl From<u32> for FormId {
@@ -56,63 +57,30 @@ impl ops::Deref for FormId {
 
 impl fmt::Debug for FormId {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:#08x}", self.deref())
+        write!(f, "{:#010X}", self.deref())
     }
 }
 
 impl fmt::Display for FormId {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:#08x}", self.deref())
+        write!(f, "{:#010X}", self.deref())
     }
 }
 
-#[derive(Debug)]
-pub struct Plugin {
-    pub tes4: Record<PluginFlags>,
+pub(super) fn form_id(bytes: &[u8]) -> IResult<&[u8], FormId> {
+    map(le_u32, |id| id.into())(bytes)
 }
 
-bitflags! {
-    pub struct PluginFlags: u32 {
-        const MASTER    = 0x0001;
-        const LOCALIZED = 0x0080;
-        const LIGHT     = 0x0200;
-    }
+pub(super) fn zstring(bytes: &[u8]) -> IResult<&[u8], String> {
+    map(
+        terminated(take_while(|c| c!= 0), tag([0u8])),
+        |zstring_bytes: &[u8]| String::from_utf8(zstring_bytes.to_vec()).unwrap()
+    )(bytes)
 }
 
-impl Default for PluginFlags {
-    fn default() -> Self {
-        PluginFlags::empty()
-    }
-}
-
-impl TryFrom<u32> for PluginFlags {
-    type Error = error::Error;
-
-    fn try_from(value: u32) -> Result<Self, Self::Error> {
-        PluginFlags::from_bits(value).ok_or(error::Error::new(error::ErrorKind::InvalidFlags))
-    }
-}
-
-#[derive(Debug)]
-pub struct Record<Flags>
-where 
-    Flags: Debug
-{
-    pub header: RecordHeader<Flags>,
-    pub data: Vec<u8>,
-}
-
-#[derive(Debug)]
-pub struct RecordHeader<Flags> 
-where 
-    Flags: Debug 
-{
-    pub code: TypeCode,
-    pub size: u32,
-    pub flags: Flags,
-    pub id: FormId,
-    pub timestamp: u16,
-    pub vc_info: u16,
-    pub version: u16,
-    pub unknown: u16,
+pub(super) fn subrecords(bytes: &[u8]) -> IResult<&[u8], Vec<(TypeCode, &[u8])>> {
+    many0(pair(
+        map(le_u32, |code| TypeCode::from(code)), 
+        flat_map(le_u16, take)
+    ))(bytes)
 }
