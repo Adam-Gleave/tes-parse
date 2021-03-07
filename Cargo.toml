@@ -6,11 +6,4 @@ edition = "2018"
 
 [dependencies]
 bitflags = "1.2.1"
-lazy_static = "1.4"
-nom = "5"
-
-[dev-dependencies]
-criterion = "0.3"
-
-[[bench]]
-name = "benchmarks"
+nom = "6.1.2"

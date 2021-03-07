@@ -1,25 +1,10 @@
 mod components;
 mod error;
-mod parser;
-mod records;
+mod parsers;
 
-#[rustfmt::skip]
-pub use components::{
-    Group, 
-    GroupHeader, 
-    Plugin, 
-    Record, 
-    RecordHeader, 
-    Subrecord, 
-    SubrecordHeader, 
-    TypeCode,
-    EspComponent,
-};
-
-pub use error::ParseError;
+use crate::components::Plugin;
+use crate::error::{Error, ErrorKind, Result};
 use std::io::{BufReader, Read};
-
-pub type Result<T> = std::result::Result<T, ParseError>;
 
 pub fn read_plugin<R>(readable: R) -> Result<Plugin>
 where
@@ -29,41 +14,24 @@ where
     let mut bytes = vec![];
     reader.read_to_end(&mut bytes)?;
 
-    let (remaining, plugin) = parser::parse_plugin(&bytes)?;
-    let bytes_remaining: Vec<u8> = remaining.iter().cloned().collect();
+    let (remaining, plugin) = parsers::plugin(&bytes).or(Err(error::Error::new(error::ErrorKind::NomError)))?;
+    let bytes_remaining = remaining.iter()
+        .cloned()
+        .collect::<Vec<u8>>()
+        .len();
 
-    if bytes_remaining.len() == 0 {
-        Ok(plugin)
-    } else {
-        Err(ParseError::new("Parser failed to interpret all bytes"))
-    }
+    Ok(plugin)
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{components::TypeCode, read_plugin, Plugin};
-    use lazy_static::lazy_static;
+    use crate::read_plugin;
     use std::fs::File;
-    use std::path::PathBuf;
-
-    lazy_static! {
-        static ref SKYRIM_PLUGIN: Plugin = {
-            let path = PathBuf::from(format!("{}{}", env!("CARGO_MANIFEST_DIR"), "/data/Skyrim.esm"));
-            let file = File::open(path).unwrap();
-            read_plugin(file).unwrap()
-        };
-    }
 
     #[test]
-    fn test_file_header() {
-        assert_eq!(SKYRIM_PLUGIN.header.name(), "Unknown");
-    }
-
-    #[test]
-    fn test_record_type_equality() {
-        let a: TypeCode = 0x5f43504e.into();
-        let b = TypeCode::from_utf8("NPC_").unwrap();
-        println!("{:#?}, {:#?}", a, b);
-        assert_eq!(a, b);
+    fn it_works() {
+        let file = File::open("data/Skyrim.esm").unwrap();
+        let plugin = read_plugin(file).unwrap();
+        println!("{:?}", plugin);
     }
 }
