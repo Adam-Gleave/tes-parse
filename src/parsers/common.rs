@@ -2,7 +2,7 @@ use super::prelude::*;
 use std::fmt;
 use std::ops::{self, Deref};
 
-pub struct TypeCode([u8; 4]);
+pub struct TypeCode(pub(crate) [u8; 4]);
 
 impl fmt::Debug for TypeCode {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

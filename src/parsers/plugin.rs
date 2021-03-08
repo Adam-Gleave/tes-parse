@@ -1,4 +1,6 @@
 use crate::error;
+use super::group;
+use super::prelude::*;
 use super::records::{record, Record};
 use bitflags::bitflags;
 use nom::IResult;
@@ -7,6 +9,7 @@ use std::convert::TryFrom;
 #[derive(Debug)]
 pub struct Plugin {
     pub tes4: Record<PluginFlags>,
+    pub groups: Vec<group::Group>,
 }
 
 bitflags! {
@@ -32,5 +35,16 @@ impl TryFrom<u32> for PluginFlags {
 }
 
 pub fn plugin(bytes: &[u8]) -> IResult<&[u8], Plugin> {
-    record::<PluginFlags>(bytes).map(|(bytes, tes4)| (bytes, Plugin { tes4 }))
+    let (mut bytes, tes4) = record::<PluginFlags>(bytes)?;
+    let mut groups = vec![];
+
+    while bytes.len() > 0 {
+        let (remaining, group) = group::group(bytes)?;
+        let (remaining, _) = take(group.size as usize - group::Group::HEADER_SIZE)(remaining)?;
+
+        groups.push(group);
+        bytes = remaining;
+    }
+
+    Ok((bytes, Plugin { tes4, groups }))
 }

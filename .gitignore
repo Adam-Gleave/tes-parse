@@ -13,3 +13,4 @@ Cargo.lock
 /data/
 
 .DS_Store
+.vscode
