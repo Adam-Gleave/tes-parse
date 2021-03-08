@@ -1,15 +1,17 @@
 use crate::error;
+use super::common::TypeCode;
 use super::group;
 use super::prelude::*;
 use super::records::{record, Record};
 use bitflags::bitflags;
 use nom::IResult;
+use std::collections::HashMap;
 use std::convert::TryFrom;
 
 #[derive(Debug)]
 pub struct Plugin {
     pub tes4: Record<PluginFlags>,
-    pub groups: Vec<group::Group>,
+    pub groups: HashMap<TypeCode, group::Group>,
 }
 
 bitflags! {
@@ -36,13 +38,12 @@ impl TryFrom<u32> for PluginFlags {
 
 pub fn plugin(bytes: &[u8]) -> IResult<&[u8], Plugin> {
     let (mut bytes, tes4) = record::<PluginFlags>(bytes)?;
-    let mut groups = vec![];
+    let mut groups = HashMap::new();
 
     while bytes.len() > 0 {
-        let (remaining, group) = group::group(bytes)?;
-        let (remaining, _) = take(group.size as usize - group::Group::HEADER_SIZE)(remaining)?;
-
-        groups.push(group);
+        let (remaining, (code, group)) = group::top_group(bytes)?;
+        let (remaining, _) = take(group.size as usize - group::Group::HEADER_SIZE)(remaining)?; 
+        groups.insert(code, group);
         bytes = remaining;
     }
 

@@ -19,7 +19,11 @@ where
         .collect::<Vec<u8>>()
         .len();
 
-    Ok(plugin)
+    if bytes_remaining > 0 {
+        Err(error::Error::new(error::ErrorKind::UnconsumedBytes(bytes_remaining)))
+    } else {
+        Ok(plugin)
+    }
 }
 
 #[cfg(test)]
@@ -31,10 +35,10 @@ mod tests {
     fn it_works() {
         let file = File::open("data/Skyrim.esm").unwrap();
         let plugin = read_plugin(file).unwrap();
-        println!("{:?}", plugin);
+        println!("{:#?}", plugin);
 
         let dawnguard_file = File::open("data/Dawnguard.esm").unwrap();
         let dawnguard_plugin = read_plugin(dawnguard_file).unwrap();
-        println!("{:?}", dawnguard_plugin);
+        println!("{:#?}", dawnguard_plugin);
     }
 }

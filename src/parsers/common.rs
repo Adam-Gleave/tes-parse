@@ -2,6 +2,7 @@ use super::prelude::*;
 use std::fmt;
 use std::ops::{self, Deref};
 
+#[derive(Clone, Hash, PartialEq, Eq)]
 pub struct TypeCode(pub(crate) [u8; 4]);
 
 impl fmt::Debug for TypeCode {
@@ -38,7 +39,7 @@ impl ops::Deref for TypeCode {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct FormId(u32);
 
 impl From<u32> for FormId {

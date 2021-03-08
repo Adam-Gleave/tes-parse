@@ -20,9 +20,9 @@ impl Group {
 pub(super) fn group(bytes: &[u8]) -> IResult<&[u8], Group> {
     map(
         delimited(
-            take(4usize), 
+            take(4usize),
             tuple((le_u32, take(4usize), take(4usize), le_u16, le_u16)), 
-            take(4usize)
+            take(4usize),
         ), 
         |(size, label, mut group_type, timestamp, vc_info): (u32, &[u8], &[u8], u16, u16)| {
             let group_type = group_type.read_i32::<LittleEndian>().unwrap().into();
@@ -36,6 +36,16 @@ pub(super) fn group(bytes: &[u8]) -> IResult<&[u8], Group> {
             }
         }
     )(bytes)
+}
+
+pub(super) fn top_group(bytes: &[u8]) -> IResult<&[u8], (TypeCode, Group)> {
+    let (bytes, group) = group(bytes)?;
+
+    if let Label::RecordType(code) = group.label.clone() {
+        Ok((bytes, (code, group)))
+    } else {
+        panic!("Top group does not have a TypeCode label");
+    }
 }
 
 fn label_given_type(bytes: &[u8], group_type: &GroupType) -> Label {
@@ -88,7 +98,7 @@ impl From<i32> for GroupType {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Label {
     BlockNumber(i32),
     GridCoordinate([u16; 2]),
