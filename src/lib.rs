@@ -35,10 +35,10 @@ mod tests {
     fn it_works() {
         let file = File::open("data/Skyrim.esm").unwrap();
         let plugin = read_plugin(file).unwrap();
-        println!("{:#?}", plugin);
+        println!("Done Skyrim.esm\n");
 
         let dawnguard_file = File::open("data/Dawnguard.esm").unwrap();
         let dawnguard_plugin = read_plugin(dawnguard_file).unwrap();
-        println!("{:#?}", dawnguard_plugin);
+        println!("Done Dawnguard.esm\n");
     }
 }

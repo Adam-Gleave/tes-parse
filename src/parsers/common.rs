@@ -1,3 +1,5 @@
+use nom::combinator::peek;
+
 use super::prelude::*;
 use std::fmt;
 use std::ops::{self, Deref};

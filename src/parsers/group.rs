@@ -27,10 +27,11 @@ pub(super) fn group(bytes: &[u8]) -> IResult<&[u8], Group> {
         ), 
         |(size, label, mut group_type, timestamp, vc_info): (u32, &[u8], &[u8], u16, u16)| {
             let group_type = group_type.read_i32::<LittleEndian>().unwrap().into();
-            
+            let label = label_given_type(label, &group_type);
+
             Group {
                 size,
-                label: label_given_type(label, &group_type),
+                label,
                 group_type,
                 timestamp,
                 vc_info,
@@ -41,8 +42,6 @@ pub(super) fn group(bytes: &[u8]) -> IResult<&[u8], Group> {
 
     let (bytes, group_data) = group_data(bytes, group.group_type, &group.label, group.size)?;
     group.data = group_data;
-
-    println!("Succeeded with top group type {:#?}", group.label);
 
     Ok((bytes, group))
 }
@@ -120,7 +119,7 @@ pub enum Label {
 
 #[derive(Debug)]
 pub enum GroupData {
-    Records(Vec<Record>),
+    Records(Vec<(String, Record)>),
     Unimplemented(Vec<u8>),
 }
 

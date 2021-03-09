@@ -63,18 +63,20 @@ where
     pub data: RecordData,
 }
 
-pub(crate) fn record(bytes: &[u8]) -> IResult<&[u8], Record> {
+pub(crate) fn record(bytes: &[u8]) -> IResult<&[u8], (String, Record)> {
     let (bytes, header) = header::<RecordFlags>(bytes)?;
     let (bytes, data) = data::<RecordFlags>(bytes, &header)?;
     
-    Ok((bytes, Record { header, data }))
+    println!("EditorID: {}", data.0);
+
+    Ok((bytes, (data.0, Record { header, data: data.1 })))
 }
 
 pub(crate) fn file_header_record(bytes: &[u8]) -> IResult<&[u8], FileHeaderRecord> {
     let (bytes, header) = header::<PluginFlags>(bytes)?;
     let (bytes, data) = data::<PluginFlags>(bytes, &header)?;
 
-    Ok((bytes, FileHeaderRecord { header, data }))
+    Ok((bytes, FileHeaderRecord { header, data: data.1 }))
 }
 
 #[derive(Debug)]
@@ -117,14 +119,34 @@ pub enum RecordData {
     Unknown(Vec<u8>),
 }
 
-fn data<'a, Flags>(bytes: &'a [u8], header: &RecordHeader<Flags>) -> IResult<&'a [u8], RecordData>
+fn data<'a, Flags>(bytes: &'a [u8], header: &RecordHeader<Flags>) -> IResult<&'a [u8], (String, RecordData)>
 where
     Flags: Debug 
 {
     let (bytes, data_bytes) = take(header.size)(bytes)?;
 
     match header.code.to_string().as_ref() {
-        "TES4" => Ok((bytes, map(file_header::data, |data| RecordData::FileHeader(data))(data_bytes)?.1)),
-        _ => Ok((bytes, RecordData::Unknown(data_bytes.to_vec()))),
+        "TES4" => Ok((bytes, map(file_header::data, |data| (String::new(), RecordData::FileHeader(data)))(data_bytes)?.1)),
+        _ => Ok((bytes, map(unknown_data, |(edid, data)| (edid, RecordData::Unknown(data)))(data_bytes)?.1)),
+    }
+}
+
+fn unknown_data(bytes: &[u8]) -> IResult<&[u8], (String, Vec<u8>)> {
+    let record_data = bytes.clone().to_vec();
+    let (remaining, subrecords) = subrecords(bytes)?;
+
+    if let Some(first_subrecord) = subrecords.first() {
+        if first_subrecord.0.to_string().as_str() == "EDID" {
+            Ok((
+                remaining, (
+                    String::from_utf8(first_subrecord.1.to_vec()).unwrap(), 
+                    record_data,
+                )
+            ))
+        } else {
+            Ok((remaining, (String::from("Missing EditorID"), record_data)))      
+        }
+    } else {
+        Ok((remaining, (String::from("Compressed Record"), record_data)))
     }
 }

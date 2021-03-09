@@ -34,6 +34,7 @@ pub(super) fn data(bytes: &[u8]) -> IResult<&[u8], FileHeaderData> {
 
     Ok((bytes, record_data))
 }
+
 #[derive(Debug, Default)]
 pub struct Hedr {
     pub version: f32,
