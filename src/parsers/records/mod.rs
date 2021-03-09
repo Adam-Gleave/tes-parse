@@ -67,7 +67,7 @@ pub(crate) fn record(bytes: &[u8]) -> IResult<&[u8], (String, Record)> {
     let (bytes, header) = header::<RecordFlags>(bytes)?;
     let (bytes, data) = data::<RecordFlags>(bytes, &header)?;
     
-    println!("EditorID: {}", data.0);
+    // println!("EditorID: {}", data.0);
 
     Ok((bytes, (data.0, Record { header, data: data.1 })))
 }

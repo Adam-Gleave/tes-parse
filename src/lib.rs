@@ -1,11 +1,16 @@
 mod error;
 mod parsers;
 
-use crate::error::Result;
-use crate::parsers::plugin;
+pub use crate::{
+    error::Result,
+    parsers::plugin::Plugin,
+};
+
+use crate::parsers::plugin::plugin;
+
 use std::io::{BufReader, Read};
 
-pub fn read_plugin<R>(readable: R) -> Result<plugin::Plugin>
+pub fn read_plugin<R>(readable: R) -> Result<Plugin>
 where
     R: std::io::Read,
 {
@@ -13,7 +18,7 @@ where
     let mut bytes = vec![];
     reader.read_to_end(&mut bytes)?;
 
-    let (remaining, plugin) = plugin::plugin(&bytes).or(Err(error::Error::new(error::ErrorKind::NomError)))?;
+    let (remaining, plugin) = plugin(&bytes).or(Err(error::Error::new(error::ErrorKind::NomError)))?;
     let bytes_remaining = remaining.iter()
         .cloned()
         .collect::<Vec<u8>>()
@@ -28,17 +33,43 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::read_plugin;
+    use super::{Plugin, read_plugin};
+
+    use ctor::ctor;
+    use env_logger;
+    use lazy_static::lazy_static;
+    use log::info;
+
     use std::fs::File;
 
-    #[test]
-    fn it_works() {
-        let file = File::open("data/Skyrim.esm").unwrap();
-        let plugin = read_plugin(file).unwrap();
-        println!("Done Skyrim.esm\n");
+    lazy_static! {
+        static ref SKYRIM_PLUGIN: Plugin = {
+            info!("Loading Skyrim.esm");
 
-        let dawnguard_file = File::open("data/Dawnguard.esm").unwrap();
-        let dawnguard_plugin = read_plugin(dawnguard_file).unwrap();
-        println!("Done Dawnguard.esm\n");
+            read_plugin(
+                File::open("data/Skyrim.esm").unwrap()
+            ).unwrap()
+        };
+    }
+
+    lazy_static! {
+        static ref DAWNGUARD_PLUGIN: Plugin = {
+            info!("Loading Dawnguard.esm");
+
+            read_plugin(
+                File::open("data/Dawnguard.esm").unwrap()
+            ).unwrap()
+        };
+    }
+
+    #[ctor]
+    fn init_logs() {
+        env_logger::init();
+    }
+
+    #[test]
+    fn test_header_magic() {
+        assert_eq!(&SKYRIM_PLUGIN.tes4.header.code.to_string(), "TES4");
+        assert_eq!(&DAWNGUARD_PLUGIN.tes4.header.code.to_string(), "TES4");
     }
 }
