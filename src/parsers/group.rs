@@ -1,4 +1,4 @@
-use super::common::{FormId, TypeCode};
+use super::{common::{FormId, TypeCode}, records::{Record, record}};
 use super::prelude::*;
 use byteorder::{LittleEndian, ReadBytesExt};
 use std::convert::TryInto;
@@ -10,6 +10,7 @@ pub struct Group {
     pub group_type: GroupType,
     pub timestamp: u16,
     pub vc_info: u16,
+    pub data: GroupData,
 }
 
 impl Group {
@@ -18,7 +19,7 @@ impl Group {
 }
 
 pub(super) fn group(bytes: &[u8]) -> IResult<&[u8], Group> {
-    map(
+    let (bytes, mut group): (&[u8], Group) = map(
         delimited(
             take(4usize),
             tuple((le_u32, take(4usize), take(4usize), le_u16, le_u16)), 
@@ -33,9 +34,17 @@ pub(super) fn group(bytes: &[u8]) -> IResult<&[u8], Group> {
                 group_type,
                 timestamp,
                 vc_info,
+                data: GroupData::Unimplemented(Vec::<u8>::new()),
             }
         }
-    )(bytes)
+    )(bytes)?;
+
+    let (bytes, group_data) = group_data(bytes, group.group_type, &group.label, group.size)?;
+    group.data = group_data;
+
+    println!("Succeeded with top group type {:#?}", group.label);
+
+    Ok((bytes, group))
 }
 
 pub(super) fn top_group(bytes: &[u8]) -> IResult<&[u8], (TypeCode, Group)> {
@@ -107,6 +116,50 @@ pub enum Label {
     ParentWorld(FormId),
     RecordType(TypeCode),
     SubBlockNumber(i32),
+}
+
+#[derive(Debug)]
+pub enum GroupData {
+    Records(Vec<Record>),
+    Unimplemented(Vec<u8>),
+}
+
+fn group_data<'a>(
+    bytes: &'a [u8], 
+    group_type: GroupType, 
+    label: &Label, 
+    size: u32,
+) -> IResult<&'a [u8], GroupData> {
+    let (remaining, mut group_bytes) = take(size as usize - Group::HEADER_SIZE)(bytes)?;
+
+    match group_type {
+        GroupType::Top => {
+            match label {
+                Label::RecordType(code) => {
+                    match code.to_string().as_str() {
+                        "CELL" | "WRLD" | "DIAL" => {
+                            Ok((remaining, GroupData::Unimplemented(group_bytes.to_vec())))
+                        },
+                        _ => {
+                            let mut records = Vec::new();
+
+                            while group_bytes.len() > 0 {
+                                let (group_remaining, record) = record(group_bytes)?;
+                                group_bytes = group_remaining;
+                                records.push(record);
+                            }
+                
+                            Ok((remaining, GroupData::Records(records)))
+                        }
+                    }
+                },
+                _ => {
+                    Ok((remaining, GroupData::Unimplemented(group_bytes.to_vec())))
+                }
+            }
+        }
+        _ => Ok((remaining, GroupData::Unimplemented(group_bytes.to_vec())))
+    } 
 }
 
 fn form_id_from_vec(mut v: &[u8]) -> FormId {

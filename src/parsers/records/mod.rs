@@ -1,12 +1,61 @@
 pub mod file_header;
 
+use crate::error::{Error, ErrorKind};
 use crate::parsers::common::*;
 use crate::parsers::prelude::*;
+use bitflags::bitflags;
 use std::convert::TryFrom;
 use std::fmt::Debug;
 
+pub type FileHeaderRecord = GenericRecord<PluginFlags>;
+pub type Record = GenericRecord<RecordFlags>;
+
+bitflags! {
+    pub struct RecordFlags: u32 {
+        const MASTER    = 0x0001;
+        const LOCALIZED = 0x0080;
+        const LIGHT     = 0x0200;
+    }
+}
+
+impl Default for RecordFlags {
+    fn default() -> Self {
+        RecordFlags::empty()
+    }
+}
+
+impl TryFrom<u32> for RecordFlags {
+    type Error = Error;
+
+    fn try_from(value: u32) -> Result<Self, Self::Error> {
+        RecordFlags::from_bits(value).ok_or(Error::new(ErrorKind::InvalidFlags))
+    }
+}
+
+bitflags! {
+    pub struct PluginFlags: u32 {
+        const MASTER    = 0x0001;
+        const LOCALIZED = 0x0080;
+        const LIGHT     = 0x0200;
+    }
+}
+
+impl Default for PluginFlags {
+    fn default() -> Self {
+        PluginFlags::empty()
+    }
+}
+
+impl TryFrom<u32> for PluginFlags {
+    type Error = Error;
+
+    fn try_from(value: u32) -> Result<Self, Self::Error> {
+        PluginFlags::from_bits(value).ok_or(Error::new(ErrorKind::InvalidFlags))
+    }
+}
+
 #[derive(Debug)]
-pub struct Record<Flags>
+pub struct GenericRecord<Flags>
 where 
     Flags: Debug
 {
@@ -14,14 +63,18 @@ where
     pub data: RecordData,
 }
 
-pub(crate) fn record<Flags>(bytes: &[u8]) -> IResult<&[u8], Record<Flags>>
-where
-    Flags: TryFrom<u32> + Debug + Default
-{
-    let (bytes, header) = header::<Flags>(bytes)?;
-    let (bytes, data) = data::<Flags>(bytes, &header)?;
+pub(crate) fn record(bytes: &[u8]) -> IResult<&[u8], Record> {
+    let (bytes, header) = header::<RecordFlags>(bytes)?;
+    let (bytes, data) = data::<RecordFlags>(bytes, &header)?;
     
     Ok((bytes, Record { header, data }))
+}
+
+pub(crate) fn file_header_record(bytes: &[u8]) -> IResult<&[u8], FileHeaderRecord> {
+    let (bytes, header) = header::<PluginFlags>(bytes)?;
+    let (bytes, data) = data::<PluginFlags>(bytes, &header)?;
+
+    Ok((bytes, FileHeaderRecord { header, data }))
 }
 
 #[derive(Debug)]
