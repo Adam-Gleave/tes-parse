@@ -56,8 +56,8 @@ impl TryFrom<u32> for PluginFlags {
 
 #[derive(Debug)]
 pub struct GenericRecord<Flags>
-where 
-    Flags: Debug
+where
+    Flags: Debug,
 {
     pub header: RecordHeader<Flags>,
     pub data: RecordData,
@@ -66,7 +66,7 @@ where
 pub(crate) fn record(bytes: &[u8]) -> IResult<&[u8], (String, Record)> {
     let (bytes, header) = header::<RecordFlags>(bytes)?;
     let (bytes, data) = data::<RecordFlags>(bytes, &header)?;
-    
+
     // println!("EditorID: {}", data.0);
 
     Ok((bytes, (data.0, Record { header, data: data.1 })))
@@ -80,9 +80,9 @@ pub(crate) fn file_header_record(bytes: &[u8]) -> IResult<&[u8], FileHeaderRecor
 }
 
 #[derive(Debug)]
-pub struct RecordHeader<Flags> 
-where 
-    Flags: Debug 
+pub struct RecordHeader<Flags>
+where
+    Flags: Debug,
 {
     pub code: TypeCode,
     pub size: u32,
@@ -96,7 +96,7 @@ where
 
 fn header<Flags>(bytes: &[u8]) -> IResult<&[u8], RecordHeader<Flags>>
 where
-    Flags: TryFrom<u32> + Debug + Default
+    Flags: TryFrom<u32> + Debug + Default,
 {
     map(
         tuple((le_u32, le_u32, le_u32, le_u32, le_u16, le_u16, le_u16, le_u16)),
@@ -109,7 +109,7 @@ where
             vc_info,
             version,
             unknown,
-        }
+        },
     )(bytes)
 }
 
@@ -121,13 +121,19 @@ pub enum RecordData {
 
 fn data<'a, Flags>(bytes: &'a [u8], header: &RecordHeader<Flags>) -> IResult<&'a [u8], (String, RecordData)>
 where
-    Flags: Debug 
+    Flags: Debug,
 {
     let (bytes, data_bytes) = take(header.size)(bytes)?;
 
     match header.code.to_string().as_ref() {
-        "TES4" => Ok((bytes, map(file_header::data, |data| (String::new(), RecordData::FileHeader(data)))(data_bytes)?.1)),
-        _ => Ok((bytes, map(unknown_data, |(edid, data)| (edid, RecordData::Unknown(data)))(data_bytes)?.1)),
+        "TES4" => Ok((
+            bytes,
+            map(file_header::data, |data| (String::new(), RecordData::FileHeader(data)))(data_bytes)?.1,
+        )),
+        _ => Ok((
+            bytes,
+            map(unknown_data, |(edid, data)| (edid, RecordData::Unknown(data)))(data_bytes)?.1,
+        )),
     }
 }
 
@@ -138,13 +144,11 @@ fn unknown_data(bytes: &[u8]) -> IResult<&[u8], (String, Vec<u8>)> {
     if let Some(first_subrecord) = subrecords.first() {
         if first_subrecord.0.to_string().as_str() == "EDID" {
             Ok((
-                remaining, (
-                    String::from_utf8(first_subrecord.1.to_vec()).unwrap(), 
-                    record_data,
-                )
+                remaining,
+                (String::from_utf8(first_subrecord.1.to_vec()).unwrap(), record_data),
             ))
         } else {
-            Ok((remaining, (String::from("Missing EditorID"), record_data)))      
+            Ok((remaining, (String::from("Missing EditorID"), record_data)))
         }
     } else {
         Ok((remaining, (String::from("Compressed Record"), record_data)))

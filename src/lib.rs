@@ -1,10 +1,7 @@
 mod error;
 mod parsers;
 
-pub use crate::{
-    error::Result,
-    parsers::plugin::Plugin,
-};
+pub use crate::{error::Result, parsers::plugin::Plugin};
 
 use crate::parsers::plugin::plugin;
 
@@ -19,10 +16,7 @@ where
     reader.read_to_end(&mut bytes)?;
 
     let (remaining, plugin) = plugin(&bytes).or(Err(error::Error::new(error::ErrorKind::NomError)))?;
-    let bytes_remaining = remaining.iter()
-        .cloned()
-        .collect::<Vec<u8>>()
-        .len();
+    let bytes_remaining = remaining.iter().cloned().collect::<Vec<u8>>().len();
 
     if bytes_remaining > 0 {
         Err(error::Error::new(error::ErrorKind::UnconsumedBytes(bytes_remaining)))
@@ -33,7 +27,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::{Plugin, read_plugin};
+    use super::{read_plugin, Plugin};
 
     use ctor::ctor;
     use env_logger;
@@ -46,9 +40,10 @@ mod tests {
         static ref SKYRIM_PLUGIN: Plugin = {
             info!("Loading Skyrim.esm");
 
-            read_plugin(
-                File::open("data/Skyrim.esm").unwrap()
-            ).unwrap()
+            let plugin = read_plugin(File::open("data/Skyrim.esm").unwrap()).unwrap();
+
+            info!("Skyrim.esm loaded");
+            plugin
         };
     }
 
@@ -56,9 +51,10 @@ mod tests {
         static ref DAWNGUARD_PLUGIN: Plugin = {
             info!("Loading Dawnguard.esm");
 
-            read_plugin(
-                File::open("data/Dawnguard.esm").unwrap()
-            ).unwrap()
+            let plugin = read_plugin(File::open("data/Dawnguard.esm").unwrap()).unwrap();
+
+            info!("Dawnguard.esm loaded");
+            plugin
         };
     }
 

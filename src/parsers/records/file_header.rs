@@ -21,16 +21,30 @@ pub(super) fn data(bytes: &[u8]) -> IResult<&[u8], FileHeaderData> {
         let bytes = subrecord.1;
 
         match code.as_str() {
-            "HEDR" => { record_data.hedr        = hedr(bytes)?.1; }
-            "CNAM" => { record_data.author      = Some(zstring(bytes)?.1); },
-            "SNAM" => { record_data.description = Some(zstring(bytes)?.1); },
-            "MAST" => { record_data.masters     = many0(mast)(bytes)?.1; }
-            "ONAM" => { record_data.overrides   = many0(form_id)(bytes)?.1; },
-            "INTV" => { record_data.intv        = le_u32(bytes)?.1; },
-            "INCC" => { record_data.incc        = le_u32(bytes)?.1; },
+            "HEDR" => {
+                record_data.hedr = hedr(bytes)?.1;
+            }
+            "CNAM" => {
+                record_data.author = Some(zstring(bytes)?.1);
+            }
+            "SNAM" => {
+                record_data.description = Some(zstring(bytes)?.1);
+            }
+            "MAST" => {
+                record_data.masters = many0(mast)(bytes)?.1;
+            }
+            "ONAM" => {
+                record_data.overrides = many0(form_id)(bytes)?.1;
+            }
+            "INTV" => {
+                record_data.intv = le_u32(bytes)?.1;
+            }
+            "INCC" => {
+                record_data.incc = le_u32(bytes)?.1;
+            }
             _ => (),
         }
-    } 
+    }
 
     Ok((bytes, record_data))
 }
@@ -43,14 +57,11 @@ pub struct Hedr {
 }
 
 fn hedr(bytes: &[u8]) -> IResult<&[u8], Hedr> {
-    map(
-        tuple((le_f32, le_i32, le_u32)), 
-        |(version, num_records, next_id)| Hedr { 
-            version, 
-            num_records, 
-            next_id: next_id.into(), 
-        }
-    )(bytes)
+    map(tuple((le_f32, le_i32, le_u32)), |(version, num_records, next_id)| Hedr {
+        version,
+        num_records,
+        next_id: next_id.into(),
+    })(bytes)
 }
 
 #[derive(Debug, Default)]
@@ -60,8 +71,5 @@ pub struct MasterFile {
 }
 
 fn mast(bytes: &[u8]) -> IResult<&[u8], MasterFile> {
-    map(
-        tuple((zstring, le_u64)),
-        |(name, tag)| MasterFile { name, tag }
-    )(bytes)
+    map(tuple((zstring, le_u64)), |(name, tag)| MasterFile { name, tag })(bytes)
 }

@@ -37,7 +37,7 @@ impl ops::Deref for TypeCode {
     type Target = [u8; 4];
 
     fn deref(&self) -> &Self::Target {
-        &self.0 
+        &self.0
     }
 }
 
@@ -53,7 +53,7 @@ impl From<u32> for FormId {
 impl ops::Deref for FormId {
     type Target = u32;
 
-    fn deref (&self) -> &Self::Target {
+    fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
@@ -75,15 +75,11 @@ pub(super) fn form_id(bytes: &[u8]) -> IResult<&[u8], FormId> {
 }
 
 pub(super) fn zstring(bytes: &[u8]) -> IResult<&[u8], String> {
-    map(
-        terminated(take_while(|c| c!= 0), tag([0u8])),
-        |zstring_bytes: &[u8]| String::from_utf8(zstring_bytes.to_vec()).unwrap()
-    )(bytes)
+    map(terminated(take_while(|c| c != 0), tag([0u8])), |zstring_bytes: &[u8]| {
+        String::from_utf8(zstring_bytes.to_vec()).unwrap()
+    })(bytes)
 }
 
 pub(super) fn subrecords(bytes: &[u8]) -> IResult<&[u8], Vec<(TypeCode, &[u8])>> {
-    many0(pair(
-        map(le_u32, |code| TypeCode::from(code)), 
-        flat_map(le_u16, take)
-    ))(bytes)
+    many0(pair(map(le_u32, |code| TypeCode::from(code)), flat_map(le_u16, take)))(bytes)
 }
