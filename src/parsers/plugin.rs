@@ -1,7 +1,7 @@
 use super::common::TypeCode;
 use super::group;
 use super::records;
-use nom::IResult;
+use crate::IResult;
 use std::collections::HashMap;
 
 #[derive(Debug)]

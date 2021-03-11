@@ -1,13 +1,20 @@
 mod error;
 mod parsers;
 
-pub use crate::{error::Result, parsers::plugin::Plugin};
+pub use crate::{error::Error, parsers::plugin::Plugin};
 
 use crate::parsers::plugin::plugin;
 
-use std::io::{BufReader, Read};
+use nom::combinator::all_consuming;
 
-pub fn read_plugin<R>(readable: R) -> Result<Plugin>
+use std::{
+    io::{BufReader, Read},
+    result::Result,
+};
+
+pub(crate) type IResult<I, T> = nom::IResult<I, T, Error>;
+
+pub fn read_plugin<R>(readable: R) -> Result<Plugin, Error>
 where
     R: std::io::Read,
 {
@@ -15,11 +22,16 @@ where
     let mut bytes = vec![];
     reader.read_to_end(&mut bytes)?;
 
-    let (remaining, plugin) = plugin(&bytes).or(Err(error::Error::new(error::ErrorKind::NomError)))?;
+    let (remaining, plugin) = all_consuming(plugin)(&bytes).map_err(|err| match err {
+        nom::Err::Incomplete(_) => unreachable!(),
+        nom::Err::Error(e) => e,
+        nom::Err::Failure(e) => e,
+    })?;
+
     let bytes_remaining = remaining.iter().cloned().collect::<Vec<u8>>().len();
 
     if bytes_remaining > 0 {
-        Err(error::Error::new(error::ErrorKind::UnconsumedBytes(bytes_remaining)))
+        Err(Error::UnconsumedBytes(bytes_remaining))
     } else {
         Ok(plugin)
     }

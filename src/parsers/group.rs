@@ -3,6 +3,7 @@ use super::{
     common::{FormId, TypeCode},
     records::{record, Record},
 };
+use crate::IResult;
 use byteorder::{LittleEndian, ReadBytesExt};
 use std::convert::TryInto;
 
@@ -126,13 +127,20 @@ pub enum GroupData {
     Unimplemented(Vec<u8>),
 }
 
-fn group_data<'a>(bytes: &'a [u8], group_type: GroupType, label: &Label, size: u32) -> IResult<&'a [u8], GroupData> {
+fn group_data<'a>(
+    bytes: &'a [u8],
+    group_type: GroupType,
+    label: &Label,
+    size: u32,
+) -> IResult<&'a [u8], GroupData> {
     let (remaining, mut group_bytes) = take(size as usize - Group::HEADER_SIZE)(bytes)?;
 
     match group_type {
         GroupType::Top => match label {
             Label::RecordType(code) => match code.to_string().as_str() {
-                "CELL" | "WRLD" | "DIAL" => Ok((remaining, GroupData::Unimplemented(group_bytes.to_vec()))),
+                "CELL" | "WRLD" | "DIAL" => {
+                    Ok((remaining, GroupData::Unimplemented(group_bytes.to_vec())))
+                }
                 _ => {
                     let mut records = Vec::new();
 
@@ -160,5 +168,8 @@ fn i32_from_vec(mut v: &[u8]) -> i32 {
 }
 
 fn grid_coord_from_vec(mut v: &[u8]) -> [u16; 2] {
-    [v.read_u16::<LittleEndian>().unwrap(), v.read_u16::<LittleEndian>().unwrap()]
+    [
+        v.read_u16::<LittleEndian>().unwrap(),
+        v.read_u16::<LittleEndian>().unwrap(),
+    ]
 }

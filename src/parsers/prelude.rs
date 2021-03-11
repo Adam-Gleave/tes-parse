@@ -4,5 +4,4 @@ pub use nom::{
     multi::many0,
     number::complete::{le_f32, le_i32, le_u16, le_u32, le_u64},
     sequence::{delimited, pair, terminated, tuple},
-    IResult,
 };

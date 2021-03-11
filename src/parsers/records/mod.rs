@@ -1,9 +1,11 @@
 pub mod file_header;
 
-use crate::error::{Error, ErrorKind};
 use crate::parsers::common::*;
 use crate::parsers::prelude::*;
+use crate::Error;
+use crate::IResult;
 use bitflags::bitflags;
+use log::debug;
 use std::convert::TryFrom;
 use std::fmt::Debug;
 
@@ -27,8 +29,8 @@ impl Default for RecordFlags {
 impl TryFrom<u32> for RecordFlags {
     type Error = Error;
 
-    fn try_from(value: u32) -> Result<Self, Self::Error> {
-        RecordFlags::from_bits(value).ok_or(Error::new(ErrorKind::InvalidFlags))
+    fn try_from(value: u32) -> std::result::Result<Self, Self::Error> {
+        RecordFlags::from_bits(value).ok_or(Error::InvalidFlags(value))
     }
 }
 
@@ -49,8 +51,8 @@ impl Default for PluginFlags {
 impl TryFrom<u32> for PluginFlags {
     type Error = Error;
 
-    fn try_from(value: u32) -> Result<Self, Self::Error> {
-        PluginFlags::from_bits(value).ok_or(Error::new(ErrorKind::InvalidFlags))
+    fn try_from(value: u32) -> std::result::Result<Self, Self::Error> {
+        PluginFlags::from_bits(value).ok_or(Error::InvalidFlags(value))
     }
 }
 
@@ -67,16 +69,31 @@ pub(crate) fn record(bytes: &[u8]) -> IResult<&[u8], (String, Record)> {
     let (bytes, header) = header::<RecordFlags>(bytes)?;
     let (bytes, data) = data::<RecordFlags>(bytes, &header)?;
 
-    // println!("EditorID: {}", data.0);
+    debug!("EditorID: {}", data.0);
 
-    Ok((bytes, (data.0, Record { header, data: data.1 })))
+    Ok((
+        bytes,
+        (
+            data.0,
+            Record {
+                header,
+                data: data.1,
+            },
+        ),
+    ))
 }
 
 pub(crate) fn file_header_record(bytes: &[u8]) -> IResult<&[u8], FileHeaderRecord> {
     let (bytes, header) = header::<PluginFlags>(bytes)?;
     let (bytes, data) = data::<PluginFlags>(bytes, &header)?;
 
-    Ok((bytes, FileHeaderRecord { header, data: data.1 }))
+    Ok((
+        bytes,
+        FileHeaderRecord {
+            header,
+            data: data.1,
+        },
+    ))
 }
 
 #[derive(Debug)]
@@ -99,7 +116,9 @@ where
     Flags: TryFrom<u32> + Debug + Default,
 {
     map(
-        tuple((le_u32, le_u32, le_u32, le_u32, le_u16, le_u16, le_u16, le_u16)),
+        tuple((
+            le_u32, le_u32, le_u32, le_u32, le_u16, le_u16, le_u16, le_u16,
+        )),
         |(code, size, flags, id, timestamp, vc_info, version, unknown)| RecordHeader::<Flags> {
             code: code.into(),
             size,
@@ -119,7 +138,10 @@ pub enum RecordData {
     Unknown(Vec<u8>),
 }
 
-fn data<'a, Flags>(bytes: &'a [u8], header: &RecordHeader<Flags>) -> IResult<&'a [u8], (String, RecordData)>
+fn data<'a, Flags>(
+    bytes: &'a [u8],
+    header: &RecordHeader<Flags>,
+) -> IResult<&'a [u8], (String, RecordData)>
 where
     Flags: Debug,
 {
@@ -128,11 +150,17 @@ where
     match header.code.to_string().as_ref() {
         "TES4" => Ok((
             bytes,
-            map(file_header::data, |data| (String::new(), RecordData::FileHeader(data)))(data_bytes)?.1,
+            map(file_header::data, |data| {
+                (String::new(), RecordData::FileHeader(data))
+            })(data_bytes)?
+            .1,
         )),
         _ => Ok((
             bytes,
-            map(unknown_data, |(edid, data)| (edid, RecordData::Unknown(data)))(data_bytes)?.1,
+            map(unknown_data, |(edid, data)| {
+                (edid, RecordData::Unknown(data))
+            })(data_bytes)?
+            .1,
         )),
     }
 }
@@ -145,7 +173,10 @@ fn unknown_data(bytes: &[u8]) -> IResult<&[u8], (String, Vec<u8>)> {
         if first_subrecord.0.to_string().as_str() == "EDID" {
             Ok((
                 remaining,
-                (String::from_utf8(first_subrecord.1.to_vec()).unwrap(), record_data),
+                (
+                    String::from_utf8(first_subrecord.1.to_vec()).unwrap(),
+                    record_data,
+                ),
             ))
         } else {
             Ok((remaining, (String::from("Missing EditorID"), record_data)))

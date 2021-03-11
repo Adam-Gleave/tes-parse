@@ -1,5 +1,5 @@
-use crate::parsers::common::*;
 use crate::parsers::prelude::*;
+use crate::{parsers::common::*, IResult};
 
 #[derive(Debug, Default)]
 pub struct FileHeaderData {
@@ -57,11 +57,14 @@ pub struct Hedr {
 }
 
 fn hedr(bytes: &[u8]) -> IResult<&[u8], Hedr> {
-    map(tuple((le_f32, le_i32, le_u32)), |(version, num_records, next_id)| Hedr {
-        version,
-        num_records,
-        next_id: next_id.into(),
-    })(bytes)
+    map(
+        tuple((le_f32, le_i32, le_u32)),
+        |(version, num_records, next_id)| Hedr {
+            version,
+            num_records,
+            next_id: next_id.into(),
+        },
+    )(bytes)
 }
 
 #[derive(Debug, Default)]
@@ -71,5 +74,8 @@ pub struct MasterFile {
 }
 
 fn mast(bytes: &[u8]) -> IResult<&[u8], MasterFile> {
-    map(tuple((zstring, le_u64)), |(name, tag)| MasterFile { name, tag })(bytes)
+    map(tuple((zstring, le_u64)), |(name, tag)| MasterFile {
+        name,
+        tag,
+    })(bytes)
 }
