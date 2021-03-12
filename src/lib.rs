@@ -1,18 +1,15 @@
 mod error;
 mod parsers;
 
-pub use crate::{error::Error, parsers::plugin::Plugin};
+use std::{io::{BufReader, Read}, result::Result};
 
 use crate::parsers::plugin::plugin;
 
 use nom::combinator::all_consuming;
 
-use std::{
-    io::{BufReader, Read},
-    result::Result,
-};
+pub use crate::{error::Error, parsers::plugin::Plugin};
 
-pub(crate) type IResult<I, T> = nom::IResult<I, T, Error>;
+type IResult<I, T> = nom::IResult<I, T, Error>;
 
 pub fn read_plugin<R>(readable: R) -> Result<Plugin, Error>
 where

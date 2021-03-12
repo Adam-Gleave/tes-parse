@@ -1,5 +1,21 @@
-use crate::parsers::prelude::*;
-use crate::{parsers::common::*, IResult};
+use std::{default::Default, fmt::Debug};
+
+use crate::{
+    IResult, 
+    parsers::common::{
+        FormId,
+        form_id, 
+        subrecords,
+        zstring,
+    },
+};
+
+use nom::{
+    combinator::map,
+    multi::many0,
+    number::complete::{le_f32, le_i32, le_u32, le_u64},
+    sequence::tuple,
+};
 
 #[derive(Debug, Default)]
 pub struct FileHeaderData {

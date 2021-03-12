@@ -1,7 +1,14 @@
-use super::prelude::*;
+use std::{fmt, ops::{self, Deref}};
+
 use crate::IResult;
-use std::fmt;
-use std::ops::{self, Deref};
+
+use nom::{
+    bytes::complete::{tag, take, take_while},
+    combinator::{flat_map, map},
+    multi::many0,
+    number::complete::{le_u16, le_u32},
+    sequence::{pair, terminated},
+};
 
 #[derive(Clone, Hash, PartialEq, Eq)]
 pub struct TypeCode(pub(crate) [u8; 4]);

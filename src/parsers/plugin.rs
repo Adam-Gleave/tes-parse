@@ -1,8 +1,6 @@
-use super::common::TypeCode;
-use super::group;
-use super::records;
-use crate::IResult;
 use std::collections::HashMap;
+
+use crate::{IResult, parsers::{common::TypeCode, group, records}};
 
 #[derive(Debug)]
 pub struct Plugin {

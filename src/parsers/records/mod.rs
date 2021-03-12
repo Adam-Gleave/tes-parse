@@ -1,13 +1,21 @@
 pub mod file_header;
 
-use crate::parsers::common::*;
-use crate::parsers::prelude::*;
-use crate::Error;
-use crate::IResult;
+use std::{convert::TryFrom, fmt::Debug};
+
+use crate::{
+    Error, 
+    IResult,
+    parsers::common::{FormId, subrecords, TypeCode}, 
+};
+
 use bitflags::bitflags;
 use log::debug;
-use std::convert::TryFrom;
-use std::fmt::Debug;
+use nom::{
+    bytes::complete::take,
+    combinator::map,
+    number::complete::{le_u16, le_u32},
+    sequence::tuple,
+};
 
 pub type FileHeaderRecord = GenericRecord<PluginFlags>;
 pub type Record = GenericRecord<RecordFlags>;

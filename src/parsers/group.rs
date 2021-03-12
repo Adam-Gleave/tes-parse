@@ -1,11 +1,20 @@
-use super::prelude::*;
-use super::{
-    common::{FormId, TypeCode},
-    records::{record, Record},
-};
-use crate::IResult;
-use byteorder::{LittleEndian, ReadBytesExt};
 use std::convert::TryInto;
+
+use crate::{    
+    IResult,
+    parsers::{
+        common::{FormId, TypeCode},
+        records::{record, Record},
+    },
+};
+
+use byteorder::{LittleEndian, ReadBytesExt};
+use nom::{
+    bytes::complete::take,
+    combinator::map,
+    number::complete::{le_u16, le_u32},
+    sequence::{delimited, tuple}
+};
 
 #[derive(Debug)]
 pub struct Group {
