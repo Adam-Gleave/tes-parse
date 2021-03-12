@@ -1,7 +1,6 @@
 use std::{default::Default, fmt::Debug};
 
 use crate::{
-    IResult, 
     parsers::common::{
         FormId,
         form_id, 
@@ -28,13 +27,13 @@ pub struct FileHeaderData {
     pub incc: u32,
 }
 
-pub(super) fn data(bytes: &[u8]) -> IResult<&[u8], FileHeaderData> {
+pub(super) fn data(bytes: &[u8]) -> crate::IResult<&[u8], FileHeaderData> {
     let mut record_data = FileHeaderData::default();
     let (bytes, subrecords) = subrecords(bytes)?;
 
     for subrecord in subrecords {
-        let code = subrecord.0.to_string();
-        let bytes = subrecord.1;
+        let code = subrecord.code.to_string();
+        let bytes = subrecord.data;
 
         match code.as_str() {
             "HEDR" => {
@@ -72,7 +71,7 @@ pub struct Hedr {
     pub next_id: FormId,
 }
 
-fn hedr(bytes: &[u8]) -> IResult<&[u8], Hedr> {
+fn hedr(bytes: &[u8]) -> crate::IResult<&[u8], Hedr> {
     map(
         tuple((le_f32, le_i32, le_u32)),
         |(version, num_records, next_id)| Hedr {
@@ -89,7 +88,7 @@ pub struct MasterFile {
     pub tag: u64,
 }
 
-fn mast(bytes: &[u8]) -> IResult<&[u8], MasterFile> {
+fn mast(bytes: &[u8]) -> crate::IResult<&[u8], MasterFile> {
     map(tuple((zstring, le_u64)), |(name, tag)| MasterFile {
         name,
         tag,

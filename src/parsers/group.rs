@@ -1,7 +1,6 @@
 use std::convert::TryInto;
 
 use crate::{    
-    IResult,
     parsers::{
         common::{FormId, TypeCode},
         records::{record, Record},
@@ -31,7 +30,7 @@ impl Group {
     pub const HEADER_SIZE: usize = 24;
 }
 
-pub(super) fn group(bytes: &[u8]) -> IResult<&[u8], Group> {
+pub(super) fn group(bytes: &[u8]) -> crate::IResult<&[u8], Group> {
     let (bytes, mut group): (&[u8], Group) = map(
         delimited(
             take(4usize),
@@ -59,7 +58,7 @@ pub(super) fn group(bytes: &[u8]) -> IResult<&[u8], Group> {
     Ok((bytes, group))
 }
 
-pub(super) fn top_group(bytes: &[u8]) -> IResult<&[u8], (TypeCode, Group)> {
+pub(super) fn top_group(bytes: &[u8]) -> crate::IResult<&[u8], (TypeCode, Group)> {
     let (bytes, group) = group(bytes)?;
 
     if let Label::RecordType(code) = group.label.clone() {
@@ -141,7 +140,7 @@ fn group_data<'a>(
     group_type: GroupType,
     label: &Label,
     size: u32,
-) -> IResult<&'a [u8], GroupData> {
+) -> crate::IResult<&'a [u8], GroupData> {
     let (remaining, mut group_bytes) = take(size as usize - Group::HEADER_SIZE)(bytes)?;
 
     match group_type {

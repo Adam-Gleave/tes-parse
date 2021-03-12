@@ -1,14 +1,10 @@
 pub mod file_header;
+pub mod flags;
 
 use std::{convert::TryFrom, fmt::Debug};
 
-use crate::{
-    Error, 
-    IResult,
-    parsers::common::{FormId, subrecords, TypeCode}, 
-};
+use crate::parsers::common::{FormId, subrecords, TypeCode};
 
-use bitflags::bitflags;
 use log::debug;
 use nom::{
     bytes::complete::take,
@@ -17,52 +13,8 @@ use nom::{
     sequence::tuple,
 };
 
-pub type FileHeaderRecord = GenericRecord<PluginFlags>;
-pub type Record = GenericRecord<RecordFlags>;
-
-bitflags! {
-    pub struct RecordFlags: u32 {
-        const MASTER    = 0x0001;
-        const LOCALIZED = 0x0080;
-        const LIGHT     = 0x0200;
-    }
-}
-
-impl Default for RecordFlags {
-    fn default() -> Self {
-        RecordFlags::empty()
-    }
-}
-
-impl TryFrom<u32> for RecordFlags {
-    type Error = Error;
-
-    fn try_from(value: u32) -> std::result::Result<Self, Self::Error> {
-        RecordFlags::from_bits(value).ok_or(Error::InvalidFlags(value))
-    }
-}
-
-bitflags! {
-    pub struct PluginFlags: u32 {
-        const MASTER    = 0x0001;
-        const LOCALIZED = 0x0080;
-        const LIGHT     = 0x0200;
-    }
-}
-
-impl Default for PluginFlags {
-    fn default() -> Self {
-        PluginFlags::empty()
-    }
-}
-
-impl TryFrom<u32> for PluginFlags {
-    type Error = Error;
-
-    fn try_from(value: u32) -> std::result::Result<Self, Self::Error> {
-        PluginFlags::from_bits(value).ok_or(Error::InvalidFlags(value))
-    }
-}
+pub type FileHeaderRecord = GenericRecord<flags::PluginFlags>;
+pub type Record = GenericRecord<flags::RecordFlags>;
 
 #[derive(Debug)]
 pub struct GenericRecord<Flags>
@@ -73,9 +25,9 @@ where
     pub data: RecordData,
 }
 
-pub(crate) fn record(bytes: &[u8]) -> IResult<&[u8], (String, Record)> {
-    let (bytes, header) = header::<RecordFlags>(bytes)?;
-    let (bytes, data) = data::<RecordFlags>(bytes, &header)?;
+pub(crate) fn record(bytes: &[u8]) -> crate::IResult<&[u8], (String, Record)> {
+    let (bytes, header) = header::<flags::RecordFlags>(bytes)?;
+    let (bytes, data) = data::<flags::RecordFlags>(bytes, &header)?;
 
     debug!("EditorID: {}", data.0);
 
@@ -91,9 +43,9 @@ pub(crate) fn record(bytes: &[u8]) -> IResult<&[u8], (String, Record)> {
     ))
 }
 
-pub(crate) fn file_header_record(bytes: &[u8]) -> IResult<&[u8], FileHeaderRecord> {
-    let (bytes, header) = header::<PluginFlags>(bytes)?;
-    let (bytes, data) = data::<PluginFlags>(bytes, &header)?;
+pub(crate) fn file_header_record(bytes: &[u8]) -> crate::IResult<&[u8], FileHeaderRecord> {
+    let (bytes, header) = header::<flags::PluginFlags>(bytes)?;
+    let (bytes, data) = data::<flags::PluginFlags>(bytes, &header)?;
 
     Ok((
         bytes,
@@ -119,7 +71,7 @@ where
     pub unknown: u16,
 }
 
-fn header<Flags>(bytes: &[u8]) -> IResult<&[u8], RecordHeader<Flags>>
+fn header<Flags>(bytes: &[u8]) -> crate::IResult<&[u8], RecordHeader<Flags>>
 where
     Flags: TryFrom<u32> + Debug + Default,
 {
@@ -149,7 +101,7 @@ pub enum RecordData {
 fn data<'a, Flags>(
     bytes: &'a [u8],
     header: &RecordHeader<Flags>,
-) -> IResult<&'a [u8], (String, RecordData)>
+) -> crate::IResult<&'a [u8], (String, RecordData)>
 where
     Flags: Debug,
 {
@@ -173,16 +125,16 @@ where
     }
 }
 
-fn unknown_data(bytes: &[u8]) -> IResult<&[u8], (String, Vec<u8>)> {
+fn unknown_data(bytes: &[u8]) -> crate::IResult<&[u8], (String, Vec<u8>)> {
     let record_data = bytes.clone().to_vec();
     let (remaining, subrecords) = subrecords(bytes)?;
 
     if let Some(first_subrecord) = subrecords.first() {
-        if first_subrecord.0.to_string().as_str() == "EDID" {
+        if first_subrecord.code.to_string().as_str() == "EDID" {
             Ok((
                 remaining,
                 (
-                    String::from_utf8(first_subrecord.1.to_vec()).unwrap(),
+                    String::from_utf8(first_subrecord.code.to_vec()).unwrap(),
                     record_data,
                 ),
             ))

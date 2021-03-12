@@ -1,7 +1,5 @@
 use std::{fmt, ops::{self, Deref}};
 
-use crate::IResult;
-
 use nom::{
     bytes::complete::{tag, take, take_while},
     combinator::{flat_map, map},
@@ -76,20 +74,25 @@ impl fmt::Display for FormId {
     }
 }
 
-pub(super) fn form_id(bytes: &[u8]) -> IResult<&[u8], FormId> {
+pub(super) fn form_id(bytes: &[u8]) -> crate::IResult<&[u8], FormId> {
     map(le_u32, |id| id.into())(bytes)
 }
 
-pub(super) fn zstring(bytes: &[u8]) -> IResult<&[u8], String> {
+pub(super) fn zstring(bytes: &[u8]) -> crate::IResult<&[u8], String> {
     map(
         terminated(take_while(|c| c != 0), tag([0u8])),
         |zstring_bytes: &[u8]| String::from_utf8(zstring_bytes.to_vec()).unwrap(),
     )(bytes)
 }
 
-pub(super) fn subrecords(bytes: &[u8]) -> IResult<&[u8], Vec<(TypeCode, &[u8])>> {
-    many0(pair(
+pub(super) struct Subrecord<'a> {
+    pub code: TypeCode,
+    pub data: &'a [u8],
+}
+
+pub(super) fn subrecords(bytes: &[u8]) -> crate::IResult<&[u8], Vec<Subrecord>> {
+    many0(map(pair(
         map(le_u32, |code| TypeCode::from(code)),
         flat_map(le_u16, take),
-    ))(bytes)
+    ), |(code, data)| Subrecord { code, data } ))(bytes)
 }
