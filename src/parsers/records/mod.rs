@@ -1,11 +1,13 @@
 pub mod file_header;
 pub mod flags;
 
-use std::{convert::TryFrom, fmt::Debug};
+use std::{fmt::Debug, io::Read};
 
 use crate::parsers::common::{FormId, subrecords, TypeCode};
+use flags::{Flags, RecordFlags};
 
-use log::debug;
+use byteorder::{LittleEndian, ReadBytesExt};
+use flate2::read::ZlibDecoder;
 use nom::{
     bytes::complete::take,
     combinator::map,
@@ -29,7 +31,7 @@ pub(crate) fn record(bytes: &[u8]) -> crate::IResult<&[u8], Record> {
     let (bytes, mut header) = header::<flags::RecordFlags>(bytes)?;
     let (bytes, (editor_id, data)) = data::<flags::RecordFlags>(bytes, &header)?;
 
-    debug!("Loaded editor_id: {}", editor_id);
+    log::debug!("Loaded editor_id: {}", editor_id);
 
     header.editor_id = Some(editor_id);
 
@@ -50,13 +52,13 @@ pub(crate) fn file_header_record(bytes: &[u8]) -> crate::IResult<&[u8], FileHead
 }
 
 #[derive(Debug)]
-pub struct RecordHeader<Flags>
+pub struct RecordHeader<F>
 where
-    Flags: Debug,
+    F: Debug,
 {
     pub code: TypeCode,
     pub size: u32,
-    pub flags: Flags,
+    pub flags: F,
     pub id: FormId,
     pub timestamp: u16,
     pub vc_info: u16,
@@ -65,18 +67,18 @@ where
     pub editor_id: Option<String>,
 }
 
-fn header<Flags>(bytes: &[u8]) -> crate::IResult<&[u8], RecordHeader<Flags>>
+fn header<F>(bytes: &[u8]) -> crate::IResult<&[u8], RecordHeader<F>>
 where
-    Flags: TryFrom<u32> + Debug + Default,
+    F: Flags,
 {
     map(
         tuple((
             le_u32, le_u32, le_u32, le_u32, le_u16, le_u16, le_u16, le_u16,
         )),
-        |(code, size, flags, id, timestamp, vc_info, version, unknown)| RecordHeader::<Flags> {
+        |(code, size, flags, id, timestamp, vc_info, version, unknown)| RecordHeader::<F> {
             code: code.into(),
             size,
-            flags: Flags::try_from(flags).unwrap_or(Flags::default()),
+            flags: F::try_from(flags).unwrap_or(F::default()),
             id: id.into(),
             timestamp,
             vc_info,
@@ -93,50 +95,61 @@ pub enum RecordData {
     Unknown(Vec<u8>),
 }
 
-fn data<'a, Flags>(
+fn data<'a, F>(
     bytes: &'a [u8],
-    header: &RecordHeader<Flags>,
+    header: &RecordHeader<F>,
 ) -> crate::IResult<&'a [u8], (String, RecordData)>
 where
-    Flags: Debug,
+    F: Flags,
 {
     let (bytes, data_bytes) = take(header.size)(bytes)?;
 
     match header.code.to_string().as_ref() {
-        "TES4" => Ok((
-            bytes,
-            map(file_header::data, |data| {
-                (String::new(), RecordData::FileHeader(data))
-            })(data_bytes)?
-            .1,
-        )),
-        _ => Ok((
-            bytes,
-            map(unknown_data, |(edid, data)| {
-                (edid, RecordData::Unknown(data))
-            })(data_bytes)?
-            .1,
-        )),
+        "TES4" => {
+            let (_, data) = file_header::data(data_bytes)?;
+            Ok((bytes, (String::new(), RecordData::FileHeader(data))))   
+        }
+        _ => {
+            let (_, (editor_id, data)) = unknown_data(data_bytes, header)?;
+            Ok((bytes, (editor_id, RecordData::Unknown(data))))
+        }
     }
 }
 
-fn unknown_data(bytes: &[u8]) -> crate::IResult<&[u8], (String, Vec<u8>)> {
-    let record_data = bytes.clone().to_vec();
-    let (remaining, subrecords) = subrecords(bytes)?;
+fn unknown_data<'a, F>(
+    bytes: &'a [u8], 
+    header: &RecordHeader<F>
+) -> crate::IResult<&'a [u8], (String, Vec<u8>)> 
+where
+    F: Flags, 
+{
+    let mut record_data = bytes.to_vec();
+
+    if header.flags.test(RecordFlags::COMPRESSED.bits()) {
+        record_data = decompress(record_data, header.size).unwrap();
+    }
+
+    let (_, subrecords) = subrecords(record_data.as_slice())?;
 
     if let Some(first_subrecord) = subrecords.first() {
         if first_subrecord.code.to_string().as_str() == "EDID" {
-            Ok((
-                remaining,
-                (
-                    String::from_utf8(first_subrecord.code.to_vec()).unwrap(),
-                    record_data,
-                ),
-            ))
+            let editor_id = String::from_utf8(first_subrecord.data.to_vec()).unwrap();
+            Ok((&[], (editor_id, record_data)))
         } else {
-            Ok((remaining, (String::from("Missing EditorID"), record_data)))
+            Ok((&[], (String::from("Missing EditorID"), record_data)))
         }
     } else {
-        Ok((remaining, (String::from("Compressed Record"), record_data)))
+        Ok((&[], (String::from("Compressed Record"), record_data)))
     }
+}
+
+fn decompress(mut bytes: Vec<u8>, size: u32) -> Result<Vec<u8>, crate::Error> {
+    let decompressed_size = bytes.drain(0..4).as_slice().read_u32::<LittleEndian>().unwrap(); 
+    let decoder = ZlibDecoder::new(bytes.as_slice());
+    let mut decompressed = vec![];
+    
+    log::debug!("Decompressing record, expecting {} bytes", decompressed_size);
+    decoder.take(size as u64).read_to_end(&mut decompressed).unwrap();
+
+    Ok(decompressed)
 }

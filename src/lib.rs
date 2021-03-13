@@ -9,9 +9,9 @@ use nom::combinator::all_consuming;
 
 pub use crate::{error::Error, parsers::plugin::Plugin};
 
-type IResult<I, T> = nom::IResult<I, T, Error>;
+type IResult<I, T> = nom::IResult<I, T, crate::Error>;
 
-pub fn read_plugin<R>(readable: R) -> Result<Plugin, Error>
+pub fn read_plugin<R>(readable: R) -> Result<Plugin, crate::Error>
 where
     R: std::io::Read,
 {
