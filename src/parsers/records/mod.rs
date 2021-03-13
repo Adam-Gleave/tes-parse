@@ -42,13 +42,7 @@ pub(crate) fn file_header_record(bytes: &[u8]) -> crate::IResult<&[u8], FileHead
     let (bytes, header) = header::<flags::PluginFlags>(bytes)?;
     let (bytes, data) = data::<flags::PluginFlags>(bytes, &header)?;
 
-    Ok((
-        bytes,
-        FileHeaderRecord {
-            header,
-            data: data.1,
-        },
-    ))
+    Ok((bytes, FileHeaderRecord { header, data: data.1 }))
 }
 
 #[derive(Debug)]
@@ -72,9 +66,7 @@ where
     F: Flags,
 {
     map(
-        tuple((
-            le_u32, le_u32, le_u32, le_u32, le_u16, le_u16, le_u16, le_u16,
-        )),
+        tuple((le_u32, le_u32, le_u32, le_u32, le_u16, le_u16, le_u16, le_u16)),
         |(code, size, flags, id, timestamp, vc_info, version, unknown)| RecordHeader::<F> {
             code: code.into(),
             size,
@@ -95,10 +87,7 @@ pub enum RecordData {
     Unknown(Vec<u8>),
 }
 
-fn data<'a, F>(
-    bytes: &'a [u8],
-    header: &RecordHeader<F>,
-) -> crate::IResult<&'a [u8], (String, RecordData)>
+fn data<'a, F>(bytes: &'a [u8], header: &RecordHeader<F>) -> crate::IResult<&'a [u8], (String, RecordData)>
 where
     F: Flags,
 {
@@ -116,10 +105,7 @@ where
     }
 }
 
-fn unknown_data<'a, F>(
-    bytes: &'a [u8],
-    header: &RecordHeader<F>,
-) -> crate::IResult<&'a [u8], (String, Vec<u8>)>
+fn unknown_data<'a, F>(bytes: &'a [u8], header: &RecordHeader<F>) -> crate::IResult<&'a [u8], (String, Vec<u8>)>
 where
     F: Flags,
 {
@@ -144,22 +130,12 @@ where
 }
 
 fn decompress(mut bytes: Vec<u8>, size: u32) -> Result<Vec<u8>, crate::Error> {
-    let decompressed_size = bytes
-        .drain(0..4)
-        .as_slice()
-        .read_u32::<LittleEndian>()
-        .unwrap();
+    let decompressed_size = bytes.drain(0..4).as_slice().read_u32::<LittleEndian>().unwrap();
     let decoder = ZlibDecoder::new(bytes.as_slice());
     let mut decompressed = vec![];
 
-    log::debug!(
-        "Decompressing record, expecting {} bytes",
-        decompressed_size
-    );
-    decoder
-        .take(size as u64)
-        .read_to_end(&mut decompressed)
-        .unwrap();
+    log::debug!("Decompressing record, expecting {} bytes", decompressed_size);
+    decoder.take(size as u64).read_to_end(&mut decompressed).unwrap();
 
     Ok(decompressed)
 }

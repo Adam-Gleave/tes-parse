@@ -144,9 +144,7 @@ fn group_data<'a>(
     match group_type {
         GroupType::Top => match label {
             Label::RecordType(code) => match code.to_string().as_str() {
-                "CELL" | "WRLD" | "DIAL" => {
-                    Ok((remaining, GroupData::Unimplemented(group_bytes.to_vec())))
-                }
+                "CELL" | "WRLD" | "DIAL" => Ok((remaining, GroupData::Unimplemented(group_bytes.to_vec()))),
                 _ => {
                     let mut records = HashMap::new();
 

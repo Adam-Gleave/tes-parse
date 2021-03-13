@@ -95,10 +95,7 @@ pub(super) struct Subrecord<'a> {
 
 pub(super) fn subrecords(bytes: &[u8]) -> crate::IResult<&[u8], Vec<Subrecord>> {
     many0(map(
-        pair(
-            map(le_u32, |code| TypeCode::from(code)),
-            flat_map(le_u16, take),
-        ),
+        pair(map(le_u32, |code| TypeCode::from(code)), flat_map(le_u16, take)),
         |(code, data)| Subrecord { code, data },
     ))(bytes)
 }
