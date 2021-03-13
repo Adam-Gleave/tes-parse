@@ -3,7 +3,7 @@ pub mod flags;
 
 use std::{fmt::Debug, io::Read};
 
-use crate::parsers::common::{FormId, subrecords, TypeCode};
+use crate::parsers::common::{subrecords, FormId, TypeCode};
 use flags::{Flags, RecordFlags};
 
 use byteorder::{LittleEndian, ReadBytesExt};
@@ -107,7 +107,7 @@ where
     match header.code.to_string().as_ref() {
         "TES4" => {
             let (_, data) = file_header::data(data_bytes)?;
-            Ok((bytes, (String::new(), RecordData::FileHeader(data))))   
+            Ok((bytes, (String::new(), RecordData::FileHeader(data))))
         }
         _ => {
             let (_, (editor_id, data)) = unknown_data(data_bytes, header)?;
@@ -117,11 +117,11 @@ where
 }
 
 fn unknown_data<'a, F>(
-    bytes: &'a [u8], 
-    header: &RecordHeader<F>
-) -> crate::IResult<&'a [u8], (String, Vec<u8>)> 
+    bytes: &'a [u8],
+    header: &RecordHeader<F>,
+) -> crate::IResult<&'a [u8], (String, Vec<u8>)>
 where
-    F: Flags, 
+    F: Flags,
 {
     let mut record_data = bytes.to_vec();
 
@@ -144,12 +144,22 @@ where
 }
 
 fn decompress(mut bytes: Vec<u8>, size: u32) -> Result<Vec<u8>, crate::Error> {
-    let decompressed_size = bytes.drain(0..4).as_slice().read_u32::<LittleEndian>().unwrap(); 
+    let decompressed_size = bytes
+        .drain(0..4)
+        .as_slice()
+        .read_u32::<LittleEndian>()
+        .unwrap();
     let decoder = ZlibDecoder::new(bytes.as_slice());
     let mut decompressed = vec![];
-    
-    log::debug!("Decompressing record, expecting {} bytes", decompressed_size);
-    decoder.take(size as u64).read_to_end(&mut decompressed).unwrap();
+
+    log::debug!(
+        "Decompressing record, expecting {} bytes",
+        decompressed_size
+    );
+    decoder
+        .take(size as u64)
+        .read_to_end(&mut decompressed)
+        .unwrap();
 
     Ok(decompressed)
 }

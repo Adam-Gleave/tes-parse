@@ -1,4 +1,4 @@
-use std::convert::{TryFrom, TryInto, Infallible};
+use std::convert::{Infallible, TryFrom, TryInto};
 
 use bitflags::{bitflags, BitFlags};
 

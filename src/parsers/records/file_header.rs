@@ -1,13 +1,6 @@
 use std::{default::Default, fmt::Debug};
 
-use crate::{
-    parsers::common::{
-        FormId,
-        form_id, 
-        subrecords,
-        zstring,
-    },
-};
+use crate::parsers::common::{form_id, subrecords, zstring, FormId};
 
 use nom::{
     combinator::map,

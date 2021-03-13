@@ -1,7 +1,10 @@
 mod error;
 mod parsers;
 
-use std::{io::{BufReader, Read}, result::Result};
+use std::{
+    io::{BufReader, Read},
+    result::Result,
+};
 
 use crate::parsers::plugin::plugin;
 

@@ -1,4 +1,7 @@
-use std::{fmt, ops::{self, Deref}};
+use std::{
+    fmt,
+    ops::{self, Deref},
+};
 
 use nom::{
     bytes::complete::{tag, take, take_while},
@@ -91,8 +94,11 @@ pub(super) struct Subrecord<'a> {
 }
 
 pub(super) fn subrecords(bytes: &[u8]) -> crate::IResult<&[u8], Vec<Subrecord>> {
-    many0(map(pair(
-        map(le_u32, |code| TypeCode::from(code)),
-        flat_map(le_u16, take),
-    ), |(code, data)| Subrecord { code, data } ))(bytes)
+    many0(map(
+        pair(
+            map(le_u32, |code| TypeCode::from(code)),
+            flat_map(le_u16, take),
+        ),
+        |(code, data)| Subrecord { code, data },
+    ))(bytes)
 }
