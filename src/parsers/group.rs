@@ -1,4 +1,4 @@
-use std::convert::TryInto;
+use std::{collections::HashMap, convert::TryInto};
 
 use crate::{    
     parsers::{
@@ -131,7 +131,7 @@ pub enum Label {
 
 #[derive(Debug)]
 pub enum GroupData {
-    Records(Vec<(String, Record)>),
+    Records(HashMap<FormId, Record>),
     Unimplemented(Vec<u8>),
 }
 
@@ -150,12 +150,12 @@ fn group_data<'a>(
                     Ok((remaining, GroupData::Unimplemented(group_bytes.to_vec())))
                 }
                 _ => {
-                    let mut records = Vec::new();
+                    let mut records = HashMap::new();
 
                     while group_bytes.len() > 0 {
                         let (group_remaining, record) = record(group_bytes)?;
                         group_bytes = group_remaining;
-                        records.push(record);
+                        records.insert(record.header.id, record);
                     }
 
                     Ok((remaining, GroupData::Records(records)))

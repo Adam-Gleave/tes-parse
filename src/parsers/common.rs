@@ -45,7 +45,7 @@ impl ops::Deref for TypeCode {
     }
 }
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Copy, Hash, PartialEq, Eq)]
 pub struct FormId(u32);
 
 impl From<u32> for FormId {

@@ -25,22 +25,15 @@ where
     pub data: RecordData,
 }
 
-pub(crate) fn record(bytes: &[u8]) -> crate::IResult<&[u8], (String, Record)> {
-    let (bytes, header) = header::<flags::RecordFlags>(bytes)?;
-    let (bytes, data) = data::<flags::RecordFlags>(bytes, &header)?;
+pub(crate) fn record(bytes: &[u8]) -> crate::IResult<&[u8], Record> {
+    let (bytes, mut header) = header::<flags::RecordFlags>(bytes)?;
+    let (bytes, (editor_id, data)) = data::<flags::RecordFlags>(bytes, &header)?;
 
-    debug!("EditorID: {}", data.0);
+    debug!("Loaded editor_id: {}", editor_id);
 
-    Ok((
-        bytes,
-        (
-            data.0,
-            Record {
-                header,
-                data: data.1,
-            },
-        ),
-    ))
+    header.editor_id = Some(editor_id);
+
+    Ok((bytes, (Record { header, data })))
 }
 
 pub(crate) fn file_header_record(bytes: &[u8]) -> crate::IResult<&[u8], FileHeaderRecord> {
@@ -69,6 +62,7 @@ where
     pub vc_info: u16,
     pub version: u16,
     pub unknown: u16,
+    pub editor_id: Option<String>,
 }
 
 fn header<Flags>(bytes: &[u8]) -> crate::IResult<&[u8], RecordHeader<Flags>>
@@ -88,6 +82,7 @@ where
             vc_info,
             version,
             unknown,
+            editor_id: None,
         },
     )(bytes)
 }
