@@ -5,7 +5,7 @@ authors = ["Adam Gleave"]
 edition = "2018"
 
 [dependencies]
-bitflags = "1.2.1"
+bitflags = { git = "https://github.com/arturoc/bitflags", branch = "bitflags_trait" }
 byteorder = "1.4.2"
 flate2 = "1.0.20"
 lazy_static = "1.4.0"
@@ -16,6 +16,3 @@ thiserror = "1.0.24"
 [dev-dependencies]
 ctor = "0.1.19"
 env_logger = "0.8.3"
-
-[patch.crates-io]
-bitflags = { git = "https://github.com/arturoc/bitflags", branch = "bitflags_trait" }
